@@ -1,32 +1,34 @@
 package main
 
 import (
-	"fmt";
-	"errors";
-	"os";
-	"log";
-	"strings";
+	"fmt"
+	"errors"
+	"os"
+	"log"
+	"strings"
 )
 
 func ReadProcessWrite(inputPath string, outputPath string, process func(string) (string, error)) error {
 	// Чтения файла с проверкой (есть ли, можно ли прочитать, ведёт ли на папку, заблокирован ли другим процессом)
 	file, err := os.ReadFile(inputPath)
 	if err != nil {
-		return err
+		return fmt.Errorf("Ошибка во время чтения: %w", err)
 	}
 
 
 	outputFile, err2 := process(string(file))
 	if err2 != nil{
-		return err2
+		return fmt.Errorf("Ошибка во время преобразований: %w",err2)
 	}
 
 	// Маски:
 	// 0644 - чтение + запись для пользователя. Чтение для остальных.
 	// 0755 - чтение + запись + запуск для пользователя. Чтение + запуск для остальных.
 	// 0600 - чтение + запись только для пользователя.
-	os.WriteFile(outputPath, []byte(outputFile), 0644)
-
+	err3 := os.WriteFile(outputPath, []byte(outputFile), 0644)
+	if err3 != nil {
+		return fmt.Errorf("Ошибка во время записи в новый файл: %w",err3)
+	}
 	return nil
 }
 
@@ -37,7 +39,7 @@ func forTests(s string) (string, error){
 
 	// Чисто проверка на отсутсвие данных (у readfile её нет).
 	if s == ""{
-		return "", errors.New("Файл не содержит данных")
+		return "", errors.New("файл не содержит данных")
 	}
 
 	// Проеврка на наличие определённого текста (привет твич)
