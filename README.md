@@ -10,7 +10,7 @@ This repository contains a collection of practical programming tasks and solutio
   * `extra/` — extra work, based on "main" model. Simple managment program
   * `main/` — first work with different types. Also, a basik work with functions.
 * **Task5/** — first work with if-else and switch.
-* **Task6/** - first work with errors. [In process].
+* **Task6/** — first work with errors. [In process].
 
 ## 🛠️ Tech Stack
 * **Language:** Go (Golang)
