@@ -35,21 +35,25 @@ func ReadProcessWrite(inputPath string, outputPath string, process func(string) 
 // Функция (callback) для тестирования. Как я понял, можно здесь прописать любую логику. По этому я решил с отствупами поработать.
 func forTests2(s string) (string, error){
 
-	s = strings.TrimSpace(s)
+	test := strings.TrimSpace(s)
 
 	// Чисто проверка на отсутсвие данных (у readfile её нет).
-	if s == ""{
+	if test == ""{
 		return "", errors.New("файл не содержит данных")
 	}
 
 	// Проеврка на наличие определённого текста (привет твич)
-	if strings.Contains(strings.ToLower(s), "error") {
+	if strings.Contains(strings.ToLower(test), "error") {
 		return "", errors.New("текст содержит запрещённое слово 'error'")
 	}
 
 	
 	// Увеличение всех i в соответствии с английской граматикой (слово "I" в анг должно быть заглавной)
-	// Да, кстати 
+	// Да, кстати, т.к. strings to upper делает все символы заглавными, логика этой конкретно функции будет не нужна.
+	// По этому я и разделяю функции, чтобы оставить эту, но при этом сделать задание с учётом ТЗ по Upper.
+	// Что касается не сохранения переносов, всё дело в логике. При разделении s на words функция также считывает переносы и табуляции как разделители.
+	// В следствии чего, при разделении, они пропадают. А при дальнейшей сборке words обратно в единую строку, переносы уже не ставятся, т.к. заранее не были учтены.
+	// Для учёта переносов нужно будет отдельную функцию разделения либо пакетом, либо собственными руками создавать и добавлять.
 	words := strings.Fields(s)
 	for i := 0; i< len(words); i++ {
 		if words[i] == "i"{
@@ -71,15 +75,15 @@ func forTests2(s string) (string, error){
 
 // Второй callback, но с завёрнутым функционалом ToUpper. По тз.
 func forTests(s string) (string, error){
-	s = strings.TrimSpace(s)
+	test := strings.TrimSpace(s)
 
 	// Чисто проверка на отсутсвие данных (у readfile её нет).
-	if s == ""{
+	if test == ""{
 		return "", errors.New("файл не содержит данных")
 	}
 
 	// Проеврка на наличие определённого текста (привет твич)
-	if strings.Contains(strings.ToLower(s), "error") {
+	if strings.Contains(strings.ToLower(test), "error") {
 		return "", errors.New("текст содержит запрещённое слово 'error'")
 	}
 
