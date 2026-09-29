@@ -117,4 +117,17 @@ func main() {
 	}
 	fmt.Println("Готово!")
 	fmt.Println("Файл сохранён в output2.txt")
+
+	// Решил проверить доп просто подстановку, как вы писали.
+	// Интересно, однако, это всё работает.
+	err3 := ReadProcessWrite(
+		"input.txt",
+		"outputExtra.txt",
+		func(s string) (string, error) { return strings.ToUpper(s), nil },
+	)
+	if err3 != nil {
+		log.Fatalf("Ошибка выполнения: %v", err3)
+	}
+	fmt.Println("Готово!")
+	fmt.Println("Файл сохранён в outputExtra.txt")
 }
