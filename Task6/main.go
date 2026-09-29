@@ -33,7 +33,7 @@ func ReadProcessWrite(inputPath string, outputPath string, process func(string) 
 }
 
 // Функция (callback) для тестирования. Как я понял, можно здесь прописать любую логику. По этому я решил с отствупами поработать.
-func forTests(s string) (string, error){
+func forTests2(s string) (string, error){
 
 	s = strings.TrimSpace(s)
 
@@ -70,7 +70,7 @@ func forTests(s string) (string, error){
 }
 
 // Второй callback, но с завёрнутым функционалом ToUpper. По тз.
-func forTests2(s string) (string, error){
+func forTests(s string) (string, error){
 	s = strings.TrimSpace(s)
 
 	// Чисто проверка на отсутсвие данных (у readfile её нет).
@@ -100,4 +100,17 @@ func main() {
 		log.Fatalf("Ошибка выполнения: %v", err)
 	}
 	fmt.Println("Готово!")
+	fmt.Println("Файл сохранён в output.txt")
+
+	err2 := ReadProcessWrite(
+		"input2.txt",
+		"output2.txt",
+		forTests2,
+	)
+
+	if err2 != nil {
+		log.Fatalf("Ошибка выполнения: %v", err2)
+	}
+	fmt.Println("Готово!")
+	fmt.Println("Файл сохранён в output2.txt")
 }
