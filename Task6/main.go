@@ -47,13 +47,15 @@ func forTests(s string) (string, error){
 		return "", errors.New("текст содержит запрещённое слово 'error'")
 	}
 
+	
 	// Увеличение всех i в соответствии с английской граматикой (слово "I" в анг должно быть заглавной)
+	// Да, кстати 
 	words := strings.Fields(s)
 	for i := 0; i< len(words); i++ {
 		if words[i] == "i"{
 			words[i] = "I"
 		} else if strings.HasPrefix(words[i], "i'"){
-			words[i] = "I" + words[i][2:]
+			words[i] = "I" + words[i][1:]
 		} else if len(words[i]) > 1 && words[i][0] == 'i' {
 			nextChar := words[i][1]
 			if nextChar == ',' || nextChar == '.' || nextChar == ';' || nextChar == '?' || nextChar == '!' || nextChar == '~' || nextChar == ':' || nextChar == '*' {
@@ -65,6 +67,25 @@ func forTests(s string) (string, error){
 	result := strings.Join(words, " ")
 	
 	return result, nil
+}
+
+// Второй callback, но с завёрнутым функционалом ToUpper. По тз.
+func forTests2(s string) (string, error){
+	s = strings.TrimSpace(s)
+
+	// Чисто проверка на отсутсвие данных (у readfile её нет).
+	if s == ""{
+		return "", errors.New("файл не содержит данных")
+	}
+
+	// Проеврка на наличие определённого текста (привет твич)
+	if strings.Contains(strings.ToLower(s), "error") {
+		return "", errors.New("текст содержит запрещённое слово 'error'")
+	}
+
+	s = strings.ToUpper(s)
+
+	return s, nil
 }
 
 // основной вызов всех функций
