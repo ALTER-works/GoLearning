@@ -11,6 +11,7 @@ This repository contains a collection of practical programming tasks and solutio
   * `main/` — first work with different types. Also, a basik work with functions.
 * **Task5/** — first work with if-else and switch.
 * **Task6/** — first work with errors and files.
+* **Task7/** — first normal work with structs and interfaces.
 
 ## 🛠️ Tech Stack
 * **Language:** Go (Golang)
