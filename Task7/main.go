@@ -4,11 +4,11 @@ import "fmt"
 
 // Структура для хранения данных о сотруднике
 type Employee struct {
-	name string
-	sirName string
-	age int
+	name     string
+	surName  string
+	age      int
 	position string
-	salary int
+	salary   int
 }
 
 // Интерфейс для вывода информации
@@ -25,30 +25,31 @@ func (e Employee) Display() {
 Возраст: %d
 Должность: %s
 ЗП: %d
-`, e.name, e.sirName,
-e.age, e.position, e.salary,
-)
+`, e.name, e.surName,
+		e.age, e.position, e.salary,
+	)
 }
 
 // Функция фильтрации сотрудников по возрасту и зарплате
 func FilterEmployees(employees []Employee, minAge int, minSalary int) []Employee {
 	filtered := []Employee{}
-	for _, employee := range employees{
-		if (employee.age >= minAge) && (employee.salary >= minSalary){
+	for _, employee := range employees {
+		if (employee.age >= minAge) && (employee.salary >= minSalary) {
 			filtered = append(filtered, employee)
-		} 
+		}
 	}
 	return filtered
 }
 
-func AllEmployeesInfo(employees []Employee){
+func AllEmployeesInfo(employees []Employee) {
 	fmt.Printf(`
 =================================
 |	ИНФОРМАЦИЯ О СОТРУДНИКАХ	|
 =================================`)
-
-	for _, employee := range employees{
-		employee.Display()
+	for _, employee := range employees {
+		// Вывод информации отфильтрованных сотрудников через интерфейс
+		var d Displayable = employee
+		d.Display()
 	}
 }
 
@@ -56,51 +57,51 @@ func main() {
 	// Инициализация списка сотрудников
 	employees := []Employee{
 		{
-			name: "Анатолий",
-			sirName: "Попов",
-			age: 75,
+			name:     "Анатолий",
+			surName:  "Попов",
+			age:      75,
 			position: "Chief Technology Officer",
-			salary: 500000,
+			salary:   500000,
 		},
 		{
-			name: "Василий",
-			sirName: "Пупкин",
-			age: 20,
+			name:     "Василий",
+			surName:  "Пупкин",
+			age:      20,
 			position: "Internal Technical Support",
-			salary: 30000,
+			salary:   30000,
 		},
 		{
-			name: "Георгий",
-			sirName: "Васильев",
-			age: 31,
+			name:     "Георгий",
+			surName:  "Васильев",
+			age:      31,
 			position: "IT Support Engineer",
-			salary: 200000,
+			salary:   200000,
 		},
 		{
-			name: "Дмитрий",
-			sirName: "Иванов",
-			age: 50,
+			name:     "Дмитрий",
+			surName:  "Иванов",
+			age:      50,
 			position: "IT Support Engineer",
-			salary: 200000,
+			salary:   200000,
 		},
 		{
-			name: "Анна",
-			sirName: "Павловна",
-			age: 47,
+			name:     "Анна",
+			surName:  "Павловна",
+			age:      47,
 			position: "Systems Administrator",
-			salary: 180000,
+			salary:   180000,
 		},
 		{
-			name: "Валентин",
-			sirName: "Петрович",
-			age: 82,
+			name:     "Валентин",
+			surName:  "Петрович",
+			age:      82,
 			position: "Cleaning Supervisor",
-			salary: 80000,
+			salary:   80000,
 		},
 	}
 
 	// Параметры фильтрации
-	minAge :=  50
+	minAge := 50
 	minSalary := 100000
 
 	// Фильтрация и вывод
