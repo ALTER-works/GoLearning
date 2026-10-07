@@ -1,7 +1,5 @@
 package utils
 
-import "fmt"
-
 // GeometryProgression - базовое вычесление н-ного (step) элемента геометрической прогрессии
 func GeometryProgression(startNumber float32, acceleration float32, step int) float32 {
 	newNumber := startNumber * Exponentiation(acceleration, step)
@@ -50,9 +48,26 @@ func ArithmeticProgressionInfinite(startNumber float32, acceleration float32) (f
 }
 
 
-// GeometryProgressionInfinite - бесконечное рекурсивное вычисление прогрессии с определённым шагом 
-func GeometryProgressionInfinite(startNumber float32, acceleration float32) (float32, func() float32) {
-	startNumber = startNumber * acceleration
-	fmt.Sprint(startNumber)
-	return GeometryProgressionInfinite(startNumber, acceleration)
+// GeometryProgressionInfinite - бесконечное рекурсивное вычисление прогрессии с определённым шагом и последующий вывод значений
+func GeometryProgressionInfinite(startNumber float32, acceleration float32) <-chan ProgressionInfo {
+	infochannel := make(chan ProgressionInfo)
+	step := 1
+	
+	go func() {
+		infochannel <- ProgressionInfo{startNumber, step}
+		stepGeometryInfinite(startNumber, acceleration, step, infochannel)
+	}()
+
+	return infochannel
+}
+// stepGeometryInfinite - шаг в рекурсию для GeometryProgressionInfinite
+func stepGeometryInfinite(startNumber float32, acceleration float32, step int, infochannel chan ProgressionInfo) {
+	newSN := startNumber * acceleration
+	step += 1
+	infochannel <- ProgressionInfo{newSN, step}
+	stepGeometryInfinite(newSN, acceleration, step, infochannel)
+}
+type ProgressionInfo struct {
+	CurrentValue float32 // текущее значение
+	StepCount    int // например, номер шага (или любое другое второе число)
 }
