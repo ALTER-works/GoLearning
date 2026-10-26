@@ -1,13 +1,13 @@
 package utils
 
 // GeometryProgression - базовое вычесление н-ного (step) элемента геометрической прогрессии
-func GeometryProgression(startNumber float32, acceleration float32, step int) float32 {
+func GeometryProgression(startNumber float32, acceleration float32, step float32) float32 {
 	newNumber := startNumber * Exponentiation(acceleration, step)
 	return newNumber
 }
 
 // GeometryProgressionSum - базовое вычесление суммы геометрической прогрессии до элемента (step)
-func GeometryProgressionSum(startNumber float32, acceleration float32, step int) float32 {
+func GeometryProgressionSum(startNumber float32, acceleration float32, step float32) float32 {
 	switch {
 	case acceleration == 1:
 		return startNumber
@@ -21,14 +21,35 @@ func GeometryProgressionSum(startNumber float32, acceleration float32, step int)
 }
 
 // Exponentiation - возведение числа (number) в степень (power)
-func Exponentiation(number float32, power int) float32 {
-	result := number
-	for i := 1; i < power; i++ {
-		result = result * number
-	}
+func Exponentiation(number float32, power float32) float32 {
+	switch {
+	case power >= 1:
+		result := number
+		for i := float32(1); i < power; i++ {
+			result = result * number
+		}
 
-	return result
+		return result
+	case power <= -1:
+		result := number
+		for i := float32(1); i < power; i++ {
+			result = result * number
+		}
+
+		return 1/result
+	case power < 1 && power > 0:
+		
+		return 1
+	case power < 0 && power > -1:
+
+		return 1
+	default:
+		return 1
+	}
 }
+
+// NRootOfValue - функция нахождения корня числа по степени
+// func NRootOfValue()
 
 // ArithmeticProgression - базовое вычесление н-ного (step) элемента арифметической прогрессии
 func ArithmeticProgression(startNumber float32, acceleration float32, step int) float32 {
