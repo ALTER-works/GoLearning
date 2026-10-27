@@ -1,9 +1,13 @@
 package storage
 
-func LoadCSV() {
+import (
+	"todo"
+)
 
+func LoadCSV(path string) ([]todo.Task, error) {
+	return nil, nil
 }
 
-func SaveCSV() {
-	
+func SaveCSV(path string, tasks []todo.Task) error {
+	return nil
 }

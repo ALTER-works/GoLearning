@@ -8,32 +8,30 @@ import (
 	"io"
 )
 
-const originalTestDbPath string = ""
-const copyTestDbPath string = ""
-
-const testTask string = "Testing smth new"
-
-var testTaskStruct = Task{
-	ID: 1, 
-	Description: "Testing smth new x2",
-	IsDone: false,
-}
+const originalTestDbPath string = "../testdata/test_tasks.json"
+const copyTestDbPath string = "../testdata/test_tasks_copy.json"
 
 // TestMain - точка входа в тесты
 func TestMain(m *testing.M) {
 
+	// Клонирование тестовых данных
 	err := cloneFile(originalTestDbPath, copyTestDbPath)
 	if err != nil {
 		fmt.Printf("Критическая ошибка: не удалось создать копию базы: %v\n", err)
-		os.Exit(1) // прерываем выполнение, если не удалось скопировать данные
+		os.Exit(1)
 	}
 
 	// Запуск тестов
 	code := m.Run()
 
 	// Удаление копии бд
-	_ = os.Remove(copyTestDbPath)
+	err = os.Remove(copyTestDbPath)
+	if err != nil {
+		fmt.Printf("Критическая ошибка: не удалось удалить копию базы: %v\n", err)
+		os.Exit(1)
+	}
 
+	// Выход
 	os.Exit(code)
 }
 
@@ -72,6 +70,7 @@ func countJsonElems(copyTestDbPath string) (int, error) {
 	return len(items), nil
 }
 
+// TestAdd - проверка функции Add из manage.go
 func TestAdd(t *testing.T) {
 	t.Log("Проверка: --Add--")
 	a, err := countJsonElems(copyTestDbPath)
@@ -80,7 +79,11 @@ func TestAdd(t *testing.T) {
 	}
 	t.Logf("До добавления в файле было элементов: %d", a)
 
-	// Add(testTaskStruct)
+	// Запуск функции
+	err = Add(id)
+	if err != nil {
+		t.Logf("Ошибка: %v", err)
+	}
 
 	b, err := countJsonElems(copyTestDbPath)
 	if err != nil {
@@ -88,13 +91,15 @@ func TestAdd(t *testing.T) {
 	}
 	t.Logf("После добавления в файле стало элементов: %d", b)
 
+	// Проверка на то, увеличилось ли кол-во элементов
 	if (a + 1) != b {
-		t.Fatalf("Ошибка: ожидали %d элементов, но получили %d (элемент не был добавлен)", a+1, b)
+		t.Fatalf("Ошибка: ожидали %d элементов, но получили %d", a+1, b)
 	} else {
 		t.Logf("Тест пройден: элемент добавлен")
 	}
 }
 
+// TestDelete - проверка функции Delete из manage.go
 func TestDelete(t *testing.T) {
 	t.Log("Проверка: --Delete--")
 	a, err := countJsonElems(copyTestDbPath)
@@ -103,7 +108,11 @@ func TestDelete(t *testing.T) {
 	}
 	t.Logf("До удаления в файле было элементов: %d", a)
 
-	// Delete(testTaskStruct)
+	// Запуск функции
+	err = Delete(id)
+	if err != nil {
+		t.Logf("Ошибка: %v", err)
+	}		
 
 	b, err := countJsonElems(copyTestDbPath)
 	if err != nil {
@@ -111,6 +120,7 @@ func TestDelete(t *testing.T) {
 	}
 	t.Logf("После удаления в файле стало элементов: %d", b)
 
+	// Проверка на то, уменьшилось ли кол-во элементов
 	if (a - 1) != b {
 		t.Fatalf("Ошибка: ожидали %d элементов, но получили %d (элемент не был добавлен)", a-1, b)
 	} else {
@@ -118,32 +128,23 @@ func TestDelete(t *testing.T) {
 	}
 }
 
+// TestList - проверка функции List из manage.go
 func TestList(t *testing.T) {
 	t.Log("Проверка: --List--")
-	s, err := List()
+
+	s, err := List(copyTestDbPath)
 	if err != nil {
 		t.Errorf("Ошибка при вызове List без аргументов: %v", err)
 	}
 
-	s, err = List()
-	if err != nil {
-		t.Errorf("Ошибка при вызове List с флагом ?: %v", err)
-	}
 
-	s, err = List()
-	if err != nil {
-		t.Errorf("Ошибка при вызове List с флагом ?: %v", err)
-	}
-
-	s, err = List()
-	if err != nil {
-		t.Errorf("Ошибка при вызове List с флагом ?: %v", err)
-	}
 }
 
+// TestComplete - проверка функции Complete из manage.go
 func TestComplete(t *testing.T) {
 	t.Log("Проверка: --Complete--")
 
+	// Создание массива данных из чтения байтов копии тестового json файла
 	data, err := os.ReadFile(copyTestDbPath)
 	if err != nil {
 		t.Fatalf("ошибка чтения файла %s: %v", copyTestDbPath, err)
@@ -159,5 +160,42 @@ func TestComplete(t *testing.T) {
 		t.Fatalf("ошибка: тестовая база пуста")
 	}
 
-	Complete(id)
+	// Тут находим последний элемент этого массива, 
+	// по чьему айди мы будем проводить изменения с помощью функции Complete в тесте
+	lastIndex := len(items) - 1
+	lastItem := items[lastIndex]
+	
+	id := lastItem.ID
+	initialIsDone := lastItem.IsDone
+
+	t.Logf("Последний элемент: ID=%d, Статус IsDone=%t", id, initialIsDone)
+
+	// Запуск функции
+	err = Complete(id)
+	if err != nil {
+		t.Logf("Ошибка: %v", err)
+	}
+
+	// Создание нового массива из изменённых данных
+	newData, err := os.ReadFile(copyTestDbPath)
+	if err != nil {
+		t.Fatalf("ошибка перечитывания файла после Complete: %v", err)
+	}
+
+	var updatedItems []Task
+	err = json.Unmarshal(newData, &updatedItems)
+	if err != nil {
+		t.Fatalf("ошибка повторной десериализации JSON: %v", err)
+	}
+
+	// Тут аналогично находим последний элемент + выводим
+	newIsDone := updatedItems[lastIndex].IsDone
+	t.Logf("Статус после Complete: IsDone=%t", newIsDone)
+
+	// Сравниваем результаты - если после complete ничего не поменялось по айди, выдаём ошибку
+	if initialIsDone == newIsDone {
+		t.Errorf("Ошибка: после вызова Complete статус IsDone для ID %v не изменился!", id)
+	}else {
+		t.Logf("Тест пройден: значение IsDone у Task (%v) из DB (%v) успешно изменено с %v на %v", lastItem, copyTestDbPath, initialIsDone, newIsDone)
+	}
 }
