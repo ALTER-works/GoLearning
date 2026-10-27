@@ -1,7 +1,7 @@
 package storage
 
 import (
-	"todo"
+	todo "todo-app/iternal/todo"
 )
 
 func LoadJSON(path string) ([]todo.Task, error) {

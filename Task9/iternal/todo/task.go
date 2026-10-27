@@ -1,7 +1,7 @@
 package todo
 
 type Task struct {
-	ID int64
+	ID int
 	Description string
 	IsDone bool
 }

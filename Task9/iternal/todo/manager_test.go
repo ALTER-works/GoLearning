@@ -10,6 +10,8 @@ import (
 
 const originalTestDbPath string = "../testdata/test_tasks.json"
 const copyTestDbPath string = "../testdata/test_tasks_copy.json"
+const testDbDone string = "../testdata/test_done_tasks.json"
+const testDbPending string = "../testdata/test_pending_tasks.json"
 
 // TestMain - точка входа в тесты
 func TestMain(m *testing.M) {
@@ -53,78 +55,106 @@ func cloneFile(src, dst string) error {
 	return err
 }
 
-// countJsonElems - считает кол-во элементов в json файле, а потом выводит итоговое кол-во
-func countJsonElems(copyTestDbPath string) (int, error) {
-	data, err := os.ReadFile(copyTestDbPath)
+// tasksArrCreation - создаёт tasks []Task из копии тестовых данных
+func tasksArrCreation(path string) ([]Task, error) {
+	// Создание массива данных из чтения байтов копии тестового json файла
+	data, err := os.ReadFile(path)
 	if err != nil {
-		return 0, fmt.Errorf("ошибка чтения файла %s: %w", copyTestDbPath, err)
+		return nil, fmt.Errorf("ошибка чтения файла %s: %v", path, err)
 	}
 
-	var items []json.RawMessage
-	
-	err = json.Unmarshal(data, &items)
+	var tasks []Task
+	err = json.Unmarshal(data, &tasks)
 	if err != nil {
-		return 0, fmt.Errorf("ошибка десериализации JSON: %w", err)
+		return nil, fmt.Errorf("ошибка десериализации JSON: %v", err)
 	}
-	
-	return len(items), nil
+
+	if len(tasks) == 0 {
+		return nil, fmt.Errorf("ошибка: тестовая база пуста")
+	}
+
+	return tasks, nil
 }
 
 // TestAdd - проверка функции Add из manage.go
 func TestAdd(t *testing.T) {
 	t.Log("Проверка: --Add--")
-	a, err := countJsonElems(copyTestDbPath)
+
+	// Создание массива данных через tasksArrCreation
+	tasks, err := tasksArrCreation(copyTestDbPath)
 	if err != nil {
-		t.Fatalf("Ошибка: не удалось посчитать элементы до добавления: %v", err)
+		t.Fatalf("Ошибка: %v", err)
 	}
-	t.Logf("До добавления в файле было элементов: %d", a)
+
+	// Описание для нового task
+	desc := "Тестирование добавления"
 
 	// Запуск функции
-	err = Add(id)
+	newTasks, err := Add(tasks, desc)
 	if err != nil {
 		t.Logf("Ошибка: %v", err)
-	}
-
-	b, err := countJsonElems(copyTestDbPath)
-	if err != nil {
-		t.Fatalf("Ошибка: не удалось посчитать элементы после добавления: %v", err)
-	}
-	t.Logf("После добавления в файле стало элементов: %d", b)
-
-	// Проверка на то, увеличилось ли кол-во элементов
-	if (a + 1) != b {
-		t.Fatalf("Ошибка: ожидали %d элементов, но получили %d", a+1, b)
+	}		
+	
+	oldTaksLen := len(tasks)
+	if len(newTasks) != (oldTaksLen+1) {
+		t.Errorf("Ошибка: длинна итогового массива значений не увеличилась ровно на 1")
 	} else {
-		t.Logf("Тест пройден: элемент добавлен")
+		dFlag := false
+		index := 0
+		for (dFlag == false) && (oldTaksLen > index) {
+			if newTasks[index] != tasks[index] {
+				dFlag = true
+			} else {
+				index++
+			}
+		}
+		for i := index; i < oldTaksLen; i++ {
+			if tasks[i] != newTasks[i+1] {
+				t.Errorf("Ошибка: данные после смещения не совпали на индексе %d", i)
+			}
+		}
 	}
 }
 
 // TestDelete - проверка функции Delete из manage.go
 func TestDelete(t *testing.T) {
 	t.Log("Проверка: --Delete--")
-	a, err := countJsonElems(copyTestDbPath)
+
+	// Создание массива данных через tasksArrCreation
+	tasks, err := tasksArrCreation(copyTestDbPath)
 	if err != nil {
-		t.Fatalf("Ошибка: не удалось посчитать элементы до удаления: %v", err)
+		t.Fatalf("Ошибка: %v", err)
 	}
-	t.Logf("До удаления в файле было элементов: %d", a)
+
+	// Аналогично функии Complete, но берём для теста элемент из середины +-
+	lastIndex := len(tasks)/2
+	lastTask := tasks[lastIndex]
+	id := lastTask.ID
 
 	// Запуск функции
-	err = Delete(id)
+	newTaks, err := Delete(tasks, id)
 	if err != nil {
 		t.Logf("Ошибка: %v", err)
 	}		
-
-	b, err := countJsonElems(copyTestDbPath)
-	if err != nil {
-		t.Fatalf("Ошибка: не удалось посчитать элементы после удаления: %v", err)
-	}
-	t.Logf("После удаления в файле стало элементов: %d", b)
-
-	// Проверка на то, уменьшилось ли кол-во элементов
-	if (a - 1) != b {
-		t.Fatalf("Ошибка: ожидали %d элементов, но получили %d (элемент не был добавлен)", a-1, b)
+	
+	newTaksLen := len(newTaks)
+	if newTaksLen != (len(tasks)-1) {
+		t.Errorf("Ошибка: длинна итогового массива значений не сократилась ровно на 1")
 	} else {
-		t.Logf("Тест пройден: элемент удалён")
+		dFlag := false
+		index := 0
+		for (dFlag == false) && (newTaksLen > index) {
+			if newTaks[index] != tasks[index] {
+				dFlag = true
+			} else {
+				index++
+			}
+		}
+		for i := index; i < newTaksLen; i++ {
+			if newTaks[i] != tasks[i+1] {
+				t.Errorf("Ошибка: данные после смещения не совпали на индексе %d", i)
+			}
+		}
 	}
 }
 
@@ -132,70 +162,128 @@ func TestDelete(t *testing.T) {
 func TestList(t *testing.T) {
 	t.Log("Проверка: --List--")
 
-	s, err := List(copyTestDbPath)
+	// Создание массива данных через tasksArrCreation
+	tasks, err := tasksArrCreation(copyTestDbPath)
 	if err != nil {
-		t.Errorf("Ошибка при вызове List без аргументов: %v", err)
+		t.Fatalf("Ошибка: %v", err)
+	}
+
+	// Проверка без фильтра
+	filter1 := ""
+
+	newTasks, err := List(tasks, filter1)
+	if err != nil {
+		t.Fatalf("Ошибка при вызове List без фильтра: %v", err)
+	}
+
+	if len(newTasks) != len(tasks) { 
+		t.Errorf("Ошибка: возвращённые данные не совпали")
+	} else {
+		for i := 0; i < len(newTasks); i++ {
+			if tasks[i] != newTasks[i] {
+				t.Errorf("Ошибка: возвращённые данные не совпали")
+			}
+		}
 	}
 
 
+	// Проверка с фильтром --all
+	filter2 := "--all"
+
+	newTasks, err = List(tasks, filter2)
+	if err != nil {
+		t.Fatalf("Ошибка при вызове List с фильтром --all: %v", err)
+	}
+
+	if len(newTasks) != len(tasks) { 
+		t.Errorf("Ошибка: возвращённые данные не совпали")
+	} else {
+		for i := 0; i < len(newTasks); i++ {
+			if tasks[i] != newTasks[i] {
+				t.Errorf("Ошибка: возвращённые данные не совпали")
+			}
+		}
+	}
+
+	// Проверка с фильтром --done
+	doneTasks, err := tasksArrCreation(testDbDone)
+	if err != nil {
+		t.Fatalf("Ошибка: %v", err)
+	}
+	filter3 := "--done"
+
+	newTasks, err = List(tasks, filter3)
+	if err != nil {
+		t.Errorf("Ошибка при вызове List с фильтром --done: %v", err)
+	}
+
+	if len(newTasks) != len(doneTasks) { 
+		t.Errorf("Ошибка: возвращённые данные не совпали")
+	} else {
+		for i := 0; i < len(newTasks); i++ {
+			if doneTasks[i] != newTasks[i] {
+				t.Errorf("Ошибка: возвращённые данные не совпали")
+			}
+		}
+	}
+
+	// Проверка с фильтром --pending
+	pendingTasks, err := tasksArrCreation(testDbPending)
+	if err != nil {
+		t.Errorf("Ошибка: %v", err)
+	}
+	filter4 := "--pending"
+
+	newTasks, err = List(tasks, filter4)
+	if err != nil {
+		t.Errorf("Ошибка при вызове List с фильтром --pending: %v", err)
+	}
+
+	if len(newTasks) != len(pendingTasks) { 
+		t.Errorf("Ошибка: возвращённые данные не совпали")
+	} else {
+		for i := 0; i < len(newTasks); i++ {
+			if pendingTasks[i] != newTasks[i] {
+				t.Errorf("Ошибка: возвращённые данные не совпали")
+			}
+		}
+	}
 }
 
 // TestComplete - проверка функции Complete из manage.go
 func TestComplete(t *testing.T) {
 	t.Log("Проверка: --Complete--")
 
-	// Создание массива данных из чтения байтов копии тестового json файла
-	data, err := os.ReadFile(copyTestDbPath)
+	// Создание массива данных через tasksArrCreation
+	tasks, err := tasksArrCreation(copyTestDbPath)
 	if err != nil {
-		t.Fatalf("ошибка чтения файла %s: %v", copyTestDbPath, err)
-	}
-
-	var items []Task
-	err = json.Unmarshal(data, &items)
-	if err != nil {
-		t.Fatalf("ошибка десериализации JSON: %v", err)
-	}
-
-	if len(items) == 0 {
-		t.Fatalf("ошибка: тестовая база пуста")
+		t.Fatalf("Ошибка: %v", err)
 	}
 
 	// Тут находим последний элемент этого массива, 
 	// по чьему айди мы будем проводить изменения с помощью функции Complete в тесте
-	lastIndex := len(items) - 1
-	lastItem := items[lastIndex]
+	lastIndex := len(tasks) - 1
+	lastTask := tasks[lastIndex]
 	
-	id := lastItem.ID
-	initialIsDone := lastItem.IsDone
+	id := lastTask.ID
+	initialIsDone := lastTask.IsDone
 
 	t.Logf("Последний элемент: ID=%d, Статус IsDone=%t", id, initialIsDone)
 
 	// Запуск функции
-	err = Complete(id)
+	newTasks, err := Complete(tasks, id)
 	if err != nil {
-		t.Logf("Ошибка: %v", err)
+		t.Fatalf("Ошибка: %v", err)
 	}
 
-	// Создание нового массива из изменённых данных
-	newData, err := os.ReadFile(copyTestDbPath)
-	if err != nil {
-		t.Fatalf("ошибка перечитывания файла после Complete: %v", err)
-	}
-
-	var updatedItems []Task
-	err = json.Unmarshal(newData, &updatedItems)
-	if err != nil {
-		t.Fatalf("ошибка повторной десериализации JSON: %v", err)
-	}
-
-	// Тут аналогично находим последний элемент + выводим
-	newIsDone := updatedItems[lastIndex].IsDone
+	// Сохраняем в новую переменную новое значение для будущего сравнения
+	newIsDone := newTasks[lastIndex].IsDone
 	t.Logf("Статус после Complete: IsDone=%t", newIsDone)
 
 	// Сравниваем результаты - если после complete ничего не поменялось по айди, выдаём ошибку
 	if initialIsDone == newIsDone {
-		t.Errorf("Ошибка: после вызова Complete статус IsDone для ID %v не изменился!", id)
+		t.Fatalf("Ошибка: после вызова Complete статус IsDone для ID %v не изменился!", id)
 	}else {
-		t.Logf("Тест пройден: значение IsDone у Task (%v) из DB (%v) успешно изменено с %v на %v", lastItem, copyTestDbPath, initialIsDone, newIsDone)
+		t.Logf("Тест пройден: значение IsDone у Task (%v) из DB (%v) успешно изменено с %v на %v", lastTask, copyTestDbPath, initialIsDone, newIsDone)
 	}
 }

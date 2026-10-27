@@ -1,14 +1,13 @@
 package todo
 
 // Add - функция, добавляющая элемент (task) в базу данных (файл tasks.json)
-func Add(tasks []Task, desc string) []Task {
-	return nil
+func Add(tasks []Task, desc string) ([]Task, error) {
+	return nil, nil
 }
 
 // List - функция, выводящая все данные из базы (все задачи). 
-// Имеет несколько флагов:  
-func List(tasks []Task, filter string) []Task {
-	return nil
+func List(tasks []Task, filter string) ([]Task, error) {
+	return nil, nil
 }
 
 // Complete - функция, меняющая значение IsDone объекта Task на противоположное

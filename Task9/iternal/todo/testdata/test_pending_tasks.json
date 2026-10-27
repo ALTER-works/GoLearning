@@ -1,0 +1,12 @@
+[
+  {
+    "id": 1,
+    "description": "Купить молоко",
+    "is_done": false
+  },
+  {
+    "id": 3,
+    "description": "Исправить опечатку в папке internal",
+    "is_done": false
+  }
+]
