@@ -1,21 +1,55 @@
 package todo
 
-// Add - функция, добавляющая элемент (task) в базу данных (файл tasks.json)
+import "fmt"
+
+// Add - функция, добавляющая объект task в tasks. Возвращает изменённый tasks соотв-но.
 func Add(tasks []Task, desc string) ([]Task, error) {
-	return nil, nil
+	newTask := Task{
+		ID: randomIdGenerator(len(tasks)),
+		Description: desc,
+		IsDone: false,
+	}
+
+	tasks = append(tasks, newTask)
+	return tasks, nil
 }
 
-// List - функция, выводящая все данные из базы (все задачи). 
+// List - функция, выводящая все данные из базы (все задачи). Возвращает тот же tasks.
 func List(tasks []Task, filter string) ([]Task, error) {
-	return nil, nil
+	
+	return tasks, nil
 }
 
-// Complete - функция, меняющая значение IsDone объекта Task на противоположное
+// Complete - функция, меняющая значение IsDone объекта Task на противоположное. Возвращает изменённый tasks соотв-но.
 func Complete(tasks []Task, id int) ([]Task, error) {
-	return nil, nil
+	
+	foundId := findTaskIndex(tasks, id)
+	if foundId == -1 {
+		return tasks, fmt.Errorf("Ошибка: задача с ID %v не найдена", id)
+	}
+
+	tasks[foundId].IsDone = !tasks[foundId].IsDone
+	return tasks, nil
 }
 
-// Delete - функция, удаляющая элемент (task) из базы данных (файл tasks.json) 
+// Delete - функция, удаляющая объект task из массива tasks. Возвращает изменённый tasks соотв-но.
 func Delete(tasks []Task, id int) ([]Task, error) {
-	return nil, nil
+	foundId := findTaskIndex(tasks, id)
+	if foundId == -1 {
+		return tasks, fmt.Errorf("Ошибка: задача с ID %v не найдена", id)
+	}
+
+	tasks = append(tasks[:foundId], tasks[foundId + 1:]...)
+
+	return tasks, nil
+}
+
+// findTaskIndex - Вспомогательная функция для поиска индекса в Complete и Delete
+func findTaskIndex(tasks []Task, id int) int {
+	for i := 0; i < len(tasks); i++ {
+		if tasks[i].ID == id {
+			return i
+		}
+	}
+	return -1
 }
