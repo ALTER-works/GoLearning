@@ -76,6 +76,105 @@ func tasksArrCreation(path string) ([]Task, error) {
 	return tasks, nil
 }
 
+// TestList - проверка функции List из manage.go
+func TestList(t *testing.T) {
+	t.Log("Проверка: --List--")
+
+	// Создание массива данных через tasksArrCreation
+	tasks, err := tasksArrCreation(copyTestDbPath)
+	if err != nil {
+		t.Fatalf("Ошибка: %v", err)
+	}
+
+	// Проверка без фильтра
+	filter1 := ""
+
+	newTasks, err := List(tasks, filter1)
+	if err != nil {
+		t.Fatalf("Ошибка при вызове List без фильтра: %v", err)
+	}
+
+	if len(newTasks) != len(tasks) { 
+		t.Logf("Длинна сверяемых данных: %v, длинна новых: %v", len(tasks), len(newTasks))
+		t.Fatalf("Ошибка: возвращённые данные при обработке теста без фильтра не совпали (по длинне)")
+	} else {
+		for i := 0; i < len(newTasks); i++ {
+			if tasks[i] != newTasks[i] {
+				t.Fatalf("Ошибка: возвращённые данные при обработке теста без фильтра не совпали (по значениям: %v != %v)", tasks[i], newTasks[i])
+			}
+		}
+	}
+	t.Logf("Тест пройден: возвращённые данные при обработке теста без фильтра совпали")
+
+	// Проверка с фильтром --all
+	filter2 := "all"
+
+	newTasks, err = List(tasks, filter2)
+	if err != nil {
+		t.Fatalf("Ошибка при вызове List с фильтром --all: %v", err)
+	}
+
+	if len(newTasks) != len(tasks) { 
+		t.Logf("Длинна сверяемых данных: %v, длинна новых: %v", len(tasks), len(newTasks))
+		t.Fatalf("Ошибка: возвращённые данные при обработке теста с фильтром --all не совпали (по длинне)")
+	} else {
+		for i := 0; i < len(newTasks); i++ {
+			if tasks[i] != newTasks[i] {
+				t.Fatalf("Ошибка: возвращённые данные при обработке теста с фильтром --all не совпали (по значениям: %v != %v)", tasks[i], newTasks[i])
+			}
+		}
+	}
+	t.Logf("Тест пройден: возвращённые данные при обработке теста с фильтром --all совпали")
+
+	// Проверка с фильтром --done
+	doneTasks, err := tasksArrCreation(testDbDone)
+	if err != nil {
+		t.Fatalf("Ошибка: %v", err)
+	}
+	filter3 := "done"
+
+	newTasks, err = List(tasks, filter3)
+	if err != nil {
+		t.Fatalf("Ошибка при вызове List с фильтром --done: %v", err)
+	}
+
+	if len(newTasks) != len(doneTasks) { 
+		t.Logf("Длинна сверяемых данных: %v, длинна новых: %v", len(doneTasks), len(newTasks))
+		t.Fatalf("Ошибка: возвращённые данные при обработке теста с фильтром --done не совпали (по длинне)")
+	} else {
+		for i := 0; i < len(newTasks); i++ {
+			if doneTasks[i] != newTasks[i] {
+				t.Fatalf("Ошибка: возвращённые данные при обработке теста с фильтром --done не совпали (по значениям: %v != %v)", doneTasks[i], newTasks[i])
+			}
+		}
+	}
+	t.Logf("Тест пройден: возвращённые данные при обработке теста с фильтром --done совпали")
+
+	// Проверка с фильтром --pending
+	pendingTasks, err := tasksArrCreation(testDbPending)
+	if err != nil {
+		t.Fatalf("Ошибка: %v", err)
+	}
+	filter4 := "pending"
+
+	newTasks, err = List(tasks, filter4)
+	if err != nil {
+		t.Fatalf("Ошибка при вызове List с фильтром --pending: %v", err)
+	}
+
+	if len(newTasks) != len(pendingTasks) { 
+		t.Logf("Длинна сверяемых данных: %v, длинна новых: %v", len(pendingTasks), len(newTasks))
+		t.Fatalf("Ошибка: возвращённые данные при обработке теста с фильтром --pending не совпали (по длинне)")
+	} else {
+		for i := 0; i < len(newTasks); i++ {
+			if pendingTasks[i] != newTasks[i] {
+				t.Fatalf("Ошибка: возвращённые данные при обработке теста с фильтром --pending не совпали (по значениям: %v != %v)", doneTasks[i], newTasks[i])
+			}
+		}
+	}
+	t.Logf("Тест пройден: возвращённые данные при обработке теста с фильтром --pending совпали")
+}
+
 // TestAdd - проверка функции Add из manage.go
 func TestAdd(t *testing.T) {
 	t.Log("Проверка: --Add--")
@@ -158,101 +257,6 @@ func TestDelete(t *testing.T) {
 		}
 	}
 	t.Logf("Тест пройден: элемент удалён")
-}
-
-// TestList - проверка функции List из manage.go
-func TestList(t *testing.T) {
-	t.Log("Проверка: --List--")
-
-	// Создание массива данных через tasksArrCreation
-	tasks, err := tasksArrCreation(copyTestDbPath)
-	if err != nil {
-		t.Fatalf("Ошибка: %v", err)
-	}
-
-	// Проверка без фильтра
-	filter1 := ""
-
-	newTasks, err := List(tasks, filter1)
-	if err != nil {
-		t.Fatalf("Ошибка при вызове List без фильтра: %v", err)
-	}
-
-	if len(newTasks) != len(tasks) { 
-		t.Fatalf("Ошибка: возвращённые данные при обработке теста без фильтра не совпали")
-	} else {
-		for i := 0; i < len(newTasks); i++ {
-			if tasks[i] != newTasks[i] {
-				t.Fatalf("Ошибка: возвращённые данные при обработке теста без фильтра не совпали")
-			}
-		}
-	}
-	t.Logf("Тест пройден: возвращённые данные при обработке теста без фильтра совпали")
-
-	// Проверка с фильтром --all
-	filter2 := "all"
-
-	newTasks, err = List(tasks, filter2)
-	if err != nil {
-		t.Fatalf("Ошибка при вызове List с фильтром --all: %v", err)
-	}
-
-	if len(newTasks) != len(tasks) { 
-		t.Fatalf("Ошибка: возвращённые данные при обработке теста с фильтром --all не совпали")
-	} else {
-		for i := 0; i < len(newTasks); i++ {
-			if tasks[i] != newTasks[i] {
-				t.Fatalf("Ошибка: возвращённые данные при обработке теста с фильтром --all не совпали")
-			}
-		}
-	}
-	t.Logf("Тест пройден: возвращённые данные при обработке теста с фильтром --all совпали")
-
-	// Проверка с фильтром --done
-	doneTasks, err := tasksArrCreation(testDbDone)
-	if err != nil {
-		t.Fatalf("Ошибка: %v", err)
-	}
-	filter3 := "done"
-
-	newTasks, err = List(tasks, filter3)
-	if err != nil {
-		t.Fatalf("Ошибка при вызове List с фильтром --done: %v", err)
-	}
-
-	if len(newTasks) != len(doneTasks) { 
-		t.Fatalf("Ошибка: возвращённые данные при обработке теста с фильтром --done не совпали")
-	} else {
-		for i := 0; i < len(newTasks); i++ {
-			if doneTasks[i] != newTasks[i] {
-				t.Fatalf("Ошибка: возвращённые данные при обработке теста с фильтром --done не совпали")
-			}
-		}
-	}
-	t.Logf("Тест пройден: возвращённые данные при обработке теста с фильтром --done совпали")
-
-	// Проверка с фильтром --pending
-	pendingTasks, err := tasksArrCreation(testDbPending)
-	if err != nil {
-		t.Fatalf("Ошибка: %v", err)
-	}
-	filter4 := "pending"
-
-	newTasks, err = List(tasks, filter4)
-	if err != nil {
-		t.Fatalf("Ошибка при вызове List с фильтром --pending: %v", err)
-	}
-
-	if len(newTasks) != len(pendingTasks) { 
-		t.Fatalf("Ошибка: возвращённые данные при обработке теста с фильтром --pending не совпали")
-	} else {
-		for i := 0; i < len(newTasks); i++ {
-			if pendingTasks[i] != newTasks[i] {
-				t.Fatalf("Ошибка: возвращённые данные при обработке теста с фильтром --pending не совпали")
-			}
-		}
-	}
-	t.Logf("Тест пройден: возвращённые данные при обработке теста с фильтром --pending совпали")
 }
 
 // TestComplete - проверка функции Complete из manage.go

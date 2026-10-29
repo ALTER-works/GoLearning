@@ -1,7 +1,7 @@
 [
   {
-    "id": 2,
-    "description": "Написать тесты на Go",
-    "is_done": true
+    "ID": 2,
+    "Description": "Написать тесты на Go",
+    "IsDone": true
   }
 ]

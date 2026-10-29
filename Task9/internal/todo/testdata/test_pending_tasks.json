@@ -1,12 +1,12 @@
 [
   {
-    "id": 1,
-    "description": "Купить молоко",
-    "is_done": false
+    "ID": 1,
+    "Description": "Купить молоко",
+    "IsDone": false
   },
   {
-    "id": 3,
-    "description": "Исправить опечатку в папке internal",
-    "is_done": false
+    "ID": 3,
+    "Description": "Исправить опечатку в папке internal",
+    "IsDone": false
   }
 ]

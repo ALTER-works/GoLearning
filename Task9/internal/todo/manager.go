@@ -28,9 +28,9 @@ func List(tasks []Task, filter string) ([]Task, error) {
 
 	switch  filter{
 	case "done":
-		for _, task := range tasks {
-			if task.IsDone == true {
-				filteredTasks = append(filteredTasks, task)
+		for i := 0; i < len(tasks); i++ {
+			if tasks[i].IsDone == true {
+				filteredTasks = append(filteredTasks, tasks[i])
 			}
 		}
 	case "pending":
@@ -42,7 +42,8 @@ func List(tasks []Task, filter string) ([]Task, error) {
 	default:
 		return tasks, fmt.Errorf("Ошибка: неизвестны фильтр %v", filter)
 	}
-	return tasks, nil
+
+	return filteredTasks, nil
 }
 
 // Complete - функция, меняющая значение IsDone объекта Task на противоположное. Возвращает изменённый tasks соотв-но.
