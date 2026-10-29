@@ -8,10 +8,10 @@ import (
 	"io"
 )
 
-const originalTestDbPath string = "../testdata/test_tasks.json"
-const copyTestDbPath string = "../testdata/test_tasks_copy.json"
-const testDbDone string = "../testdata/test_done_tasks.json"
-const testDbPending string = "../testdata/test_pending_tasks.json"
+const originalTestDbPath string = "testdata/test_tasks.json"
+const copyTestDbPath string = "testdata/test_tasks_copy.json"
+const testDbDone string = "testdata/test_done_tasks.json"
+const testDbPending string = "testdata/test_pending_tasks.json"
 
 // TestMain - точка входа в тесты
 func TestMain(m *testing.M) {
@@ -114,6 +114,7 @@ func TestAdd(t *testing.T) {
 			}
 		}
 	}
+	t.Logf("Тест пройден: элемент добавлен")
 }
 
 // TestDelete - проверка функции Delete из manage.go
@@ -156,6 +157,7 @@ func TestDelete(t *testing.T) {
 			}
 		}
 	}
+	t.Logf("Тест пройден: элемент удалён")
 }
 
 // TestList - проверка функции List из manage.go
@@ -177,18 +179,18 @@ func TestList(t *testing.T) {
 	}
 
 	if len(newTasks) != len(tasks) { 
-		t.Errorf("Ошибка: возвращённые данные не совпали")
+		t.Fatalf("Ошибка: возвращённые данные при обработке теста без фильтра не совпали")
 	} else {
 		for i := 0; i < len(newTasks); i++ {
 			if tasks[i] != newTasks[i] {
-				t.Errorf("Ошибка: возвращённые данные не совпали")
+				t.Fatalf("Ошибка: возвращённые данные при обработке теста без фильтра не совпали")
 			}
 		}
 	}
-
+	t.Logf("Тест пройден: возвращённые данные при обработке теста без фильтра совпали")
 
 	// Проверка с фильтром --all
-	filter2 := "--all"
+	filter2 := "all"
 
 	newTasks, err = List(tasks, filter2)
 	if err != nil {
@@ -196,58 +198,61 @@ func TestList(t *testing.T) {
 	}
 
 	if len(newTasks) != len(tasks) { 
-		t.Errorf("Ошибка: возвращённые данные не совпали")
+		t.Fatalf("Ошибка: возвращённые данные при обработке теста с фильтром --all не совпали")
 	} else {
 		for i := 0; i < len(newTasks); i++ {
 			if tasks[i] != newTasks[i] {
-				t.Errorf("Ошибка: возвращённые данные не совпали")
+				t.Fatalf("Ошибка: возвращённые данные при обработке теста с фильтром --all не совпали")
 			}
 		}
 	}
+	t.Logf("Тест пройден: возвращённые данные при обработке теста с фильтром --all совпали")
 
 	// Проверка с фильтром --done
 	doneTasks, err := tasksArrCreation(testDbDone)
 	if err != nil {
 		t.Fatalf("Ошибка: %v", err)
 	}
-	filter3 := "--done"
+	filter3 := "done"
 
 	newTasks, err = List(tasks, filter3)
 	if err != nil {
-		t.Errorf("Ошибка при вызове List с фильтром --done: %v", err)
+		t.Fatalf("Ошибка при вызове List с фильтром --done: %v", err)
 	}
 
 	if len(newTasks) != len(doneTasks) { 
-		t.Errorf("Ошибка: возвращённые данные не совпали")
+		t.Fatalf("Ошибка: возвращённые данные при обработке теста с фильтром --done не совпали")
 	} else {
 		for i := 0; i < len(newTasks); i++ {
 			if doneTasks[i] != newTasks[i] {
-				t.Errorf("Ошибка: возвращённые данные не совпали")
+				t.Fatalf("Ошибка: возвращённые данные при обработке теста с фильтром --done не совпали")
 			}
 		}
 	}
+	t.Logf("Тест пройден: возвращённые данные при обработке теста с фильтром --done совпали")
 
 	// Проверка с фильтром --pending
 	pendingTasks, err := tasksArrCreation(testDbPending)
 	if err != nil {
-		t.Errorf("Ошибка: %v", err)
+		t.Fatalf("Ошибка: %v", err)
 	}
-	filter4 := "--pending"
+	filter4 := "pending"
 
 	newTasks, err = List(tasks, filter4)
 	if err != nil {
-		t.Errorf("Ошибка при вызове List с фильтром --pending: %v", err)
+		t.Fatalf("Ошибка при вызове List с фильтром --pending: %v", err)
 	}
 
 	if len(newTasks) != len(pendingTasks) { 
-		t.Errorf("Ошибка: возвращённые данные не совпали")
+		t.Fatalf("Ошибка: возвращённые данные при обработке теста с фильтром --pending не совпали")
 	} else {
 		for i := 0; i < len(newTasks); i++ {
 			if pendingTasks[i] != newTasks[i] {
-				t.Errorf("Ошибка: возвращённые данные не совпали")
+				t.Fatalf("Ошибка: возвращённые данные при обработке теста с фильтром --pending не совпали")
 			}
 		}
 	}
+	t.Logf("Тест пройден: возвращённые данные при обработке теста с фильтром --pending совпали")
 }
 
 // TestComplete - проверка функции Complete из manage.go

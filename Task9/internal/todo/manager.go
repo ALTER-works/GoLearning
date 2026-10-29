@@ -16,7 +16,32 @@ func Add(tasks []Task, desc string) ([]Task, error) {
 
 // List - функция, выводящая все данные из базы (все задачи). Возвращает тот же tasks.
 func List(tasks []Task, filter string) ([]Task, error) {
-	
+	if (len(tasks)) == 0 {
+		return tasks, fmt.Errorf("Внимание: переданный массив не имеет данных")
+	}
+
+	if filter == "" || filter == "all"{
+		return tasks, nil
+	}
+
+	var filteredTasks []Task
+
+	switch  filter{
+	case "done":
+		for _, task := range tasks {
+			if task.IsDone == true {
+				filteredTasks = append(filteredTasks, task)
+			}
+		}
+	case "pending":
+		for _, task := range tasks {
+			if task.IsDone == false {
+				filteredTasks = append(filteredTasks, task)
+			}
+		}
+	default:
+		return tasks, fmt.Errorf("Ошибка: неизвестны фильтр %v", filter)
+	}
 	return tasks, nil
 }
 
