@@ -1,0 +1,4 @@
+ID,Description,IsDone
+1,Купить молоко,false
+2,Написать тесты на Go,true
+3,Исправить опечатку в папке internal,false

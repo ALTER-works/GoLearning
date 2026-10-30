@@ -4,11 +4,14 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	todo "todo-app/iternal/todo"
+	todo "todo-app/internal/todo"
 )
+
+const pathToData = "data/tasks.json"
 
 func main() {
 	// Загрузка базы данных
+	
 
 	// Проверка, достаточно ли аргументов в вызове. Если нет, просто выводит памятку.
 	if len(os.Args) < 2 {
@@ -36,7 +39,7 @@ func main() {
 		addCmd.Parse(os.Args[2:])
 
 		t := todo.Task{Description: *descPtr, IsDone: false}
-		todo.Add(t)
+		todo.Add(t, )
 
 	case "list":
 		listCmd := flag.NewFlagSet("list", flag.ExitOnError)
