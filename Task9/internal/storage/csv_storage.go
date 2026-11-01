@@ -2,18 +2,36 @@ package storage
 
 import (
 	"fmt"
+	"os"
+	add "todo-app/internal/storage/additions"
 	todo "todo-app/internal/todo"
 )
 
 func LoadCSV(path string) ([]todo.Task, error) {
-	tasks, err := DataLoad(path)
+	dataBytes, err := DataLoad(path)
 	if err != nil {
-		return nil, fmt.Errorf("Ошибка загрузки файла: %v", err)
+		return nil, err
+	}
+	
+	var tasks []todo.Task
+	err = add.CsvUnmarshal(dataBytes, &tasks)
+	if err != nil {
+		return nil, fmt.Errorf("не удалось анмаршалить данные из CSV: %v", err)
 	}
 
-	return nil, nil
+	return tasks, nil
 }
 
 func SaveCSV(path string, tasks []todo.Task) error {
+	dataBytes, err := add.CsvMarshal(tasks)
+	if err != nil {
+		return fmt.Errorf("не удалось маршалить данные в CSV: %w", err)
+	}
+
+	err = os.WriteFile(path, dataBytes, 0664)
+	if err != nil {
+		return fmt.Errorf("не удалось записать CSV файл по пути %s: %w", path, err)
+	}
+
 	return nil
 }

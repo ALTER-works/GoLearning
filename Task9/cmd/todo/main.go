@@ -4,32 +4,45 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"todo-app/internal/storage" // Путь к вашему пакету storage, проверьте корректность импорта
 	todo "todo-app/internal/todo"
 )
 
 const pathToData = "data/tasks.json"
 
 func main() {
-	// Загрузка базы данных
-	
+	// 1. Загрузка базы данных из JSON файла при старте
+	tasks, err := storage.LoadJSON(pathToData)
+	if err != nil {
+		// Если файла ещё нет, инициализируем пустой слайс, иначе выходим с ошибкой
+		if os.IsNotExist(err) {
+			tasks = []todo.Task{}
+		} else {
+			fmt.Printf("Ошибка загрузки базы данных: %v\n", err)
+			os.Exit(1)
+		}
+	}
 
 	// Проверка, достаточно ли аргументов в вызове. Если нет, просто выводит памятку.
 	if len(os.Args) < 2 {
 		fmt.Println(`
  -- ToDo-app --
  Возможные команды:
- add - 
- list - 
- complete -
- delete -
- export -
- load - 
+ add      - Добавить новую задачу (--desc "описание")
+ list     - Показать список задач (--filter "all|done|undone")
+ complete - Отметить задачу как выполненную (--id 1)
+ delete   - Удалить задачу (--id 1)
+ export   - Выгрузить базу данных в CSV файл (--path "tasks.csv")
+ load     - Загрузить базу данных из CSV файла (--path "tasks.csv")
 `)
 		os.Exit(1)
 	}
 
-	// Обрабатка команды, в зависимости от названия и фильтров
+	// Обработка команды, в зависимости от названия и фильтров
 	command := os.Args[1]
+
+	// Флаг для отслеживания изменений: сохраняем основной JSON только если данные поменялись
+	shouldSave := false
 
 	switch command {
 	case "add":
@@ -38,66 +51,134 @@ func main() {
 
 		addCmd.Parse(os.Args[2:])
 
-		t := todo.Task{Description: *descPtr, IsDone: false}
-		todo.Add(t, )
+		if *descPtr == "" {
+			fmt.Println("Ошибка: Описание задачи не может быть пустым. Используйте флаг --desc")
+			os.Exit(1)
+		}
+
+		// Вызываем менеджер и обновляем наш слайс
+		tasks, err = todo.Add(tasks, *descPtr)
+		if err != nil {
+			fmt.Println("Ошибка: %v", err)
+			os.Exit(1)
+		}
+		shouldSave = true
+		fmt.Println("Задача успешно добавлена!")
 
 	case "list":
 		listCmd := flag.NewFlagSet("list", flag.ExitOnError)
-		filterPtr := listCmd.String("filter", "all", "Фильтр задач")
+		filterPtr := listCmd.String("filter", "all", "Фильтр задач (all, done, undone)")
 
 		listCmd.Parse(os.Args[2:])
 
-		err := todo.List(*filterPtr)
+		// Получаем отфильтрованный список задач
+		filteredTasks, err := todo.List(tasks, *filterPtr)
 		if err != nil {
-			fmt.Printf("Ошибка: %v\n", err)
+			fmt.Println("Ошибка: %v", err)
+			os.Exit(1)
 		}
-	
+		
+		// Выводим результат пользователю
+		if len(filteredTasks) == 0 {
+			fmt.Println("Список задач пуст.")
+		} else {
+			fmt.Printf("\n--- Список задач (Фильтр: %s) ---\n", *filterPtr)
+			for _, t := range filteredTasks {
+				status := "[ ]"
+				if t.IsDone {
+					status = "[X]"
+				}
+				fmt.Printf("%d. %s %s\n", t.ID, status, t.Description)
+			}
+		}
+
 	case "complete":
-		completeCmd := flag.NewFlagSet("list", flag.ExitOnError)
-		completePtr := completeCmd.String("filter", "all", "Фильтр задач")
+		completeCmd := flag.NewFlagSet("complete", flag.ExitOnError)
+		idPtr := completeCmd.Int("id", 0, "ID задачи для отметки выполнения")
 
 		completeCmd.Parse(os.Args[2:])
 
-		err := todo.List(*completePtr)
-		if err != nil {
-			fmt.Printf("Ошибка: %v\n", err)
+		if *idPtr == 0 {
+			fmt.Println("Ошибка: Укажите корректный ID задачи через флаг --id")
+			os.Exit(1)
 		}
 
+		// Вызываем функцию модификации
+		updatedTasks, err := todo.Complete(tasks, *idPtr)
+		if err != nil {
+			fmt.Printf("Ошибка: %v\n", err)
+			os.Exit(1)
+		}
+
+		tasks = updatedTasks
+		shouldSave = true
+		fmt.Printf("Задача №%d успешно выполнена!\n", *idPtr)
+
 	case "delete":
-		deleteCmd := flag.NewFlagSet("list", flag.ExitOnError)
-		deletePtr := deleteCmd.String("filter", "all", "Фильтр задач")
+		deleteCmd := flag.NewFlagSet("delete", flag.ExitOnError)
+		idPtr := deleteCmd.Int("id", 0, "ID задачи для удаления")
 
 		deleteCmd.Parse(os.Args[2:])
 
-		err := todo.Delete(*deletePtr)
-		if err != nil {
-			fmt.Printf("Ошибка: %v\n", err)
+		if *idPtr == 0 {
+			fmt.Println("Ошибка: Укажите корректный ID задачи через флаг --id")
+			os.Exit(1)
 		}
 
+		// Вызываем функцию удаления
+		updatedTasks, err := todo.Delete(tasks, *idPtr)
+		if err != nil {
+			fmt.Printf("Ошибка: %v\n", err)
+			os.Exit(1)
+		}
+
+		tasks = updatedTasks
+		shouldSave = true
+		fmt.Printf("Задача №%d успешно удалена.\n", *idPtr)
+
 	case "export":
-		exportCmd := flag.NewFlagSet("list", flag.ExitOnError)
-		exportPtr := exportCmd.String("filter", "all", "Фильтр задач")
+		exportCmd := flag.NewFlagSet("export", flag.ExitOnError)
+		csvPathPtr := exportCmd.String("path", "data/tasks.csv", "Путь для выгрузки CSV файла")
 
 		exportCmd.Parse(os.Args[2:])
 
-		err := todo.List(*exportPtr)
+		// Экспортируем текущий рабочий слайс задач в CSV
+		err := storage.SaveCSV(*csvPathPtr, tasks)
 		if err != nil {
-			fmt.Printf("Ошибка: %v\n", err)
+			fmt.Printf("Ошибка экспорта в CSV: %v\n", err)
+			os.Exit(1)
 		}
+		fmt.Printf("Данные успешно экспортированы в файл: %s\n", *csvPathPtr)
 
 	case "load":
-		listCmd := flag.NewFlagSet("list", flag.ExitOnError)
-		filterPtr := listCmd.String("filter", "all", "Фильтр задач")
+		loadCmd := flag.NewFlagSet("load", flag.ExitOnError)
+		csvPathPtr := loadCmd.String("path", "data/tasks.csv", "Путь к импортируемому CSV файлу")
 
-		listCmd.Parse(os.Args[2:])
+		loadCmd.Parse(os.Args[2:])
 
-		err := todo.List(*filterPtr)
+		// Загружаем задачи из указанного внешнего CSV
+		loadedTasks, err := storage.LoadCSV(*csvPathPtr)
 		if err != nil {
-			fmt.Printf("Ошибка: %v\n", err)
+			fmt.Printf("Ошибка импорта из CSV: %v\n", err)
+			os.Exit(1)
 		}
 
+		// Перезаписываем текущую базу данных новыми задачами из CSV
+		tasks = loadedTasks
+		shouldSave = true
+		fmt.Printf("Успешно загружено %d задач из CSV файла!\n", len(tasks))
+
 	default:
-		fmt.Printf("Неизвестная команда: %s\nИспользуйте ToDo --help для ознакомления с функционалом", command)
+		fmt.Printf("Неизвестная команда: %s\nЗапустите приложение без аргументов для вывода справки.\n", command)
 		os.Exit(1)
+	}
+
+	// 2. Если в ходе выполнения команды данные изменились — перезаписываем основную БД (JSON)
+	if shouldSave {
+		err := storage.SaveJSON(pathToData, tasks)
+		if err != nil {
+			fmt.Printf("Критическая ошибка сохранения базы данных: %v\n", err)
+			os.Exit(1)
+		}
 	}
 }

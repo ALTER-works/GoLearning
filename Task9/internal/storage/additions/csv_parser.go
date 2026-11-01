@@ -3,69 +3,16 @@ package storage
 import (
 	"bytes"
 	"encoding/csv"
-	"encoding/json"
 	"fmt"
 	"io"
-	"os"
 	"reflect"
 	"strconv"
-	"net/http"
-	todo "todo-app/internal/todo"
 )
-
-// dataLoad загружает данные из файлов для проекта через Unmarhsal из csv и json. 
-func DataLoad(pathToTest string) ([]todo.Task, error){
-	dataBytes, err := os.ReadFile(pathToTest)
-	if err != nil {
-		return nil, fmt.Errorf("Ошибка: %v", err)
-	}
-
-	kind, err := findType(dataBytes)
-	if err != nil {
-		return nil, fmt.Errorf("Ошибка: %v", err)
-	}
-
-	var data []todo.Task
-	switch kind {
-	case "csv":
-		err = csvUnmarshal(dataBytes, &data)
-		if err != nil {
-			return nil, fmt.Errorf("Ошибка: %v", err)
-		}
-	case "json":
-		err = json.Unmarshal(dataBytes, &data)
-		if err != nil {
-			return nil, fmt.Errorf("Ошибка: %v", err)
-		}
-	default:
-		return nil, fmt.Errorf("Ошибка: неподходящий тип файла")
-	}
-
-	return data, nil
-}
-
-type FileType string
-// findType ищет тип файла для dataLoad
-func findType(dataBytes []byte) (FileType, error)  {
-	if len(dataBytes) == 0 {
-		return "", fmt.Errorf("Нет данных. Количество байт в файле: %v", len(dataBytes))
-	}
-
-	limit := 512
-	if len(dataBytes) < limit {
-		limit = len(dataBytes)
-	}
-	
-	mimeType := http.DetectContentType(dataBytes[:limit])
-	
-	return FileType(mimeType), nil
-}
-
 // Решил написать, т.к. аналога Unmarshal базового для csv в Go нет, 
 // а использовать модуль из стороннего проекта не захотелось.
 
-// csvUnmarshal переводит байты файла CSV сразу в необходимый тип данных по возможности. Аналог json.unmarshal, только для csv. Реализован через рефлексию.
-func csvUnmarshal(dataBytes []byte, v any) error {
+// CsvUnmarshal переводит байты файла CSV сразу в необходимый тип данных по возможности. Аналог json.unmarshal, только для csv. Реализован через рефлексию.
+func CsvUnmarshal(dataBytes []byte, v any) error {
 	// Проверка на то, пустой ли файл или нет, как в unmarshal json
 	trimmed := bytes.TrimSpace(dataBytes)
 	if len(trimmed) == 0 {
@@ -160,4 +107,95 @@ func csvUnmarshal(dataBytes []byte, v any) error {
 	sliceVal.Set(fastSlice)
 
 	return nil
+}
+
+// CsvMarshal переводит данные из опреденённого типа в байты для записи в файл. Аналог json.marshal и обратная копия unmarshal. Тоже рефлексия.
+// Нужно будет подкорректировать в будущем некоторые моменты, т.к. это копия через МЛ
+func CsvMarshal(v any) ([]byte, error) {
+	// Проверка на то, что нам передали не пустые данные (если слайс пустой, возвращаем пустой массив байт)
+	if v == nil {
+		return nil, fmt.Errorf("csv: Marshal ожидает данные, получено nil")
+	}
+
+	// Проверка на то, является ли v слайсом или указателем на слайс, т.к. маршалить можно и то, и другое
+	rv := reflect.ValueOf(v)
+	if rv.Kind() == reflect.Pointer {
+		if rv.IsNil() {
+			return nil, fmt.Errorf("csv: Marshal ожидает ненулевой указатель, получено %T", v)
+		}
+		rv = rv.Elem()
+	}
+
+	if rv.Kind() != reflect.Slice {
+		return nil, fmt.Errorf("csv: Marshal ожидает слайс или указатель на слайс, получено %s", rv.Kind())
+	}
+
+	// Получаем схему значения, лежащего в слайсе
+	elemType := rv.Type().Elem()
+	if elemType.Kind() != reflect.Struct {
+		return nil, fmt.Errorf("csv: Marshal ожидает слайс структур, получен слайс %s", elemType.Kind())
+	}
+
+	var buf bytes.Buffer
+	writer := csv.NewWriter(&buf)
+
+	// Технические переменные для цикла
+	var header []string
+	length := rv.Len()
+
+	// Собираем заголовки на основе экспортируемых полей структуры
+	for i := 0; i < elemType.NumField(); i++ {
+		field := elemType.Field(i)
+		if field.PkgPath == "" {
+			header = append(header, field.Name)
+		}
+	}
+
+	// Записываем строку заголовков в буфер
+	if err := writer.Write(header); err != nil {
+		return nil, fmt.Errorf("csv write header: %v", err)
+	}
+
+	for i := 0; i < length; i++ {
+		structVal := rv.Index(i)
+		var record []string
+
+		for j := 0; j < elemType.NumField(); j++ {
+			fieldInfo := elemType.Field(j)
+			if fieldInfo.PkgPath != "" {
+				continue // Пропускаем неэкспортируемые поля
+			}
+
+			field := structVal.Field(j)
+			var rawValue string
+
+			switch field.Kind() {
+			case reflect.String:
+				rawValue = field.String()
+			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+				rawValue = strconv.FormatInt(field.Int(), 10)
+			case reflect.Float32, reflect.Float64:
+				rawValue = strconv.FormatFloat(field.Float(), 'f', -1, 64)
+			case reflect.Bool:
+				rawValue = strconv.FormatBool(field.Bool())
+			default:
+				// Если тип сложный, приводим к строке через базовый спринт
+				rawValue = fmt.Sprintf("%v", field.Interface())
+			}
+
+			record = append(record, rawValue)
+		}
+
+		if err := writer.Write(record); err != nil {
+			return nil, fmt.Errorf("csv write record: %v", err)
+		}
+	}
+
+	// Сбрасываем оставшиеся в буфере csv.Writer данные в наш bytes.Buffer
+	writer.Flush()
+	if err := writer.Error(); err != nil {
+		return nil, fmt.Errorf("csv flush: %v", err)
+	}
+
+	return buf.Bytes(), nil
 }
