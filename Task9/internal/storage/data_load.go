@@ -9,18 +9,12 @@ import (
 	"os"
 	"reflect"
 	"strconv"
+	"net/http"
 	todo "todo-app/internal/todo"
 )
 
-type FileType string
-
-const (
-	TypeJSON    FileType = "json"
-	TypeCSV     FileType = "csv"
-	TypeUnknown FileType = "unknown"
-)
-
-func dataLoad(pathToTest string) ([]todo.Task, error){
+// dataLoad загружает данные из файлов для проекта через Unmarhsal из csv и json. 
+func DataLoad(pathToTest string) ([]todo.Task, error){
 	dataBytes, err := os.ReadFile(pathToTest)
 	if err != nil {
 		return nil, fmt.Errorf("Ошибка: %v", err)
@@ -50,20 +44,27 @@ func dataLoad(pathToTest string) ([]todo.Task, error){
 	return data, nil
 }
 
-func findType(dataBytes []byte) (FileType, error){
-	trimmed := bytes.TrimSpace(dataBytes)
-	if len(trimmed) == 0 {
-		return TypeUnknown, fmt.Errorf("Ошибка: неподходящий тип файла")
+type FileType string
+// findType ищет тип файла для dataLoad
+func findType(dataBytes []byte) (FileType, error)  {
+	if len(dataBytes) == 0 {
+		return "", fmt.Errorf("Нет данных. Количество байт в файле: %v", len(dataBytes))
 	}
 
-
-	return "", nil
+	limit := 512
+	if len(dataBytes) < limit {
+		limit = len(dataBytes)
+	}
+	
+	mimeType := http.DetectContentType(dataBytes[:limit])
+	
+	return FileType(mimeType), nil
 }
 
 // Решил написать, т.к. аналога Unmarshal базового для csv в Go нет, 
 // а использовать модуль из стороннего проекта не захотелось.
 
-// csvUnmarshal - аналог json.unmarshal, только для csv. Реализован через рефлексию.
+// csvUnmarshal переводит байты файла CSV сразу в необходимый тип данных по возможности. Аналог json.unmarshal, только для csv. Реализован через рефлексию.
 func csvUnmarshal(dataBytes []byte, v any) error {
 	// Проверка на то, пустой ли файл или нет, как в unmarshal json
 	trimmed := bytes.TrimSpace(dataBytes)
@@ -94,12 +95,16 @@ func csvUnmarshal(dataBytes []byte, v any) error {
 	// У обработчика (тут csv.NewReader) нет своего интерфейса, т.к. для разных типов файлов нужна разная обработка.
 	// Reader csv не умеет работать с другими кодировкам, он работает только с utf-8 и соотв. ASCII 
 	
+	// Технические переменные для цикла
 	var header []string
+	fastSlice := reflect.MakeSlice(sliceVal.Type(), 0, 0)
+	flagToStop := true
 
-	for {
+	for flagToStop {
 		record, err := reader.Read()
 		if err == io.EOF {
-			return nil
+			flagToStop = false
+			continue
 		}
 		if err != nil {
 			return fmt.Errorf("csv read: %v", err)
@@ -149,14 +154,10 @@ func csvUnmarshal(dataBytes []byte, v any) error {
 			}
 		}
 
-		sliceVal.Set(reflect.Append(sliceVal, newElem))
+		fastSlice = reflect.Append(fastSlice, newElem)
 	}
-	
+
+	sliceVal.Set(fastSlice)
+
 	return nil
 }
-
-// type Task struct {
-// 	ID int
-// 	Description string
-// 	IsDone bool
-// }
