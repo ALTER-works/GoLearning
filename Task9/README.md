@@ -39,17 +39,6 @@ go build -o todo-app.exe ./cmd/todo
 go build -o todo-app ./cmd/todo && chmod +x todo-app
 ```
 
-### Примеры использования:
-
-* **Добавление задачи:**
-  ```bash
-  ./todo add --desc="Купить книги"
-  ```
-* **Загрузка/Импорт данных (из CSV):**
-  ```bash
-  ./todo load --file=tasks_export.csv
-  ```
-
 ## Тестирование
 
 Для запуска тестов менеджера задач (`manager_test.go`):
