@@ -10,7 +10,14 @@ import (
 func LoadJSON(path string) ([]todo.Task, error) {
 	dataBytes, err := DataLoad(path)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return []todo.Task{}, nil
+		}
 		return nil, err
+	}
+
+	if len(dataBytes) == 0 {
+		return []todo.Task{}, nil
 	}
 	
 	var tasks []todo.Task

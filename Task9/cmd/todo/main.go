@@ -4,6 +4,8 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
 	"todo-app/internal/storage" // Путь к вашему пакету storage, проверьте корректность импорта
 	todo "todo-app/internal/todo"
 )
@@ -30,18 +32,17 @@ func main() {
  Возможные команды:
  add      - Добавить новую задачу (--desc "описание")
  list     - Показать список задач (--filter "all|done|undone")
- complete - Отметить задачу как выполненную (--id 1)
- delete   - Удалить задачу (--id 1)
- export   - Выгрузить базу данных в CSV файл (--path "tasks.csv")
- load     - Загрузить базу данных из CSV файла (--path "tasks.csv")
-`)
+ complete - Отметить задачу как выполненную (--id int)
+ delete   - Удалить задачу (--id int)
+ export   - Выгрузить базу данных в CSV файл (--path "tasksToExport.csv|.json")
+ load     - Загрузить базу данных из CSV файла (--path "tasksImportFrom.csv|.json")`)
 		os.Exit(1)
 	}
 
 	// Обработка команды, в зависимости от названия и фильтров
 	command := os.Args[1]
 
-	// Флаг для отслеживания изменений: сохраняем основной JSON только если данные поменялись
+	// Флаг для отслеживания изменений: сохраняем БД только если данные поменялись
 	shouldSave := false
 
 	switch command {
@@ -59,7 +60,7 @@ func main() {
 		// Вызываем менеджер и обновляем наш слайс
 		tasks, err = todo.Add(tasks, *descPtr)
 		if err != nil {
-			fmt.Println("Ошибка: %v", err)
+			fmt.Printf("Ошибка: %v", err)
 			os.Exit(1)
 		}
 		shouldSave = true
@@ -74,7 +75,7 @@ func main() {
 		// Получаем отфильтрованный список задач
 		filteredTasks, err := todo.List(tasks, *filterPtr)
 		if err != nil {
-			fmt.Println("Ошибка: %v", err)
+			fmt.Printf("Ошибка: %v", err)
 			os.Exit(1)
 		}
 		
@@ -103,7 +104,7 @@ func main() {
 			os.Exit(1)
 		}
 
-		// Вызываем функцию модификации
+		// Вызываем функцию compelte
 		updatedTasks, err := todo.Complete(tasks, *idPtr)
 		if err != nil {
 			fmt.Printf("Ошибка: %v\n", err)
@@ -125,7 +126,7 @@ func main() {
 			os.Exit(1)
 		}
 
-		// Вызываем функцию удаления
+		// Вызываем функцию delete
 		updatedTasks, err := todo.Delete(tasks, *idPtr)
 		if err != nil {
 			fmt.Printf("Ошибка: %v\n", err)
@@ -138,42 +139,82 @@ func main() {
 
 	case "export":
 		exportCmd := flag.NewFlagSet("export", flag.ExitOnError)
-		csvPathPtr := exportCmd.String("path", "data/tasks.csv", "Путь для выгрузки CSV файла")
+		filePathPtr := exportCmd.String("path", "", "Путь для выгрузки CSV или JSON файла")
 
 		exportCmd.Parse(os.Args[2:])
-
-		// Экспортируем текущий рабочий слайс задач в CSV
-		err := storage.SaveCSV(*csvPathPtr, tasks)
-		if err != nil {
-			fmt.Printf("Ошибка экспорта в CSV: %v\n", err)
+		if len(*filePathPtr) == 0{
+			fmt.Println("Использование: todo-app.exe export --path=<путь_экспорта_с_расширением_файла>")
 			os.Exit(1)
 		}
-		fmt.Printf("Данные успешно экспортированы в файл: %s\n", *csvPathPtr)
+
+		ext := strings.ToLower(filepath.Ext(*filePathPtr))
+
+		switch ext {
+		case ".json":
+			err := storage.SaveJSON(*filePathPtr, tasks)
+			if err != nil {
+				fmt.Printf("Ошибка экспорта в JSON: %v\n", err)
+				os.Exit(1)
+			}
+			fmt.Printf("Данные успешно экспортированы в файл: %s\n", *filePathPtr)
+			
+		case ".csv":
+			err := storage.SaveCSV(*filePathPtr, tasks)
+			if err != nil {
+				fmt.Printf("Ошибка экспорта в CSV: %v\n", err)
+				os.Exit(1)
+			}
+			fmt.Printf("Данные успешно экспортированы в файл: %s\n", *filePathPtr)
+		}
 
 	case "load":
 		loadCmd := flag.NewFlagSet("load", flag.ExitOnError)
-		csvPathPtr := loadCmd.String("path", "data/tasks.csv", "Путь к импортируемому CSV файлу")
+		filePathPtr := loadCmd.String("path", "", "Путь к импортируемому CSV или JSON файлу")
 
 		loadCmd.Parse(os.Args[2:])
 
-		// Загружаем задачи из указанного внешнего CSV
-		loadedTasks, err := storage.LoadCSV(*csvPathPtr)
-		if err != nil {
-			fmt.Printf("Ошибка импорта из CSV: %v\n", err)
+		if len(*filePathPtr) == 0{
+			fmt.Println("Использование: todo-app.exe load --path=<путь_импорта_с_расширением_файла>")
 			os.Exit(1)
 		}
 
-		// Перезаписываем текущую базу данных новыми задачами из CSV
+		var loadedTasks []todo.Task
+		ext := strings.ToLower(filepath.Ext(*filePathPtr))
+
+		switch ext {
+		case ".csv":
+			// Загружаем задачи из CSV
+			loadedTasks, err = storage.LoadCSV(*filePathPtr)
+			if err != nil {
+				fmt.Printf("Ошибка импорта из CSV: %v\n", err)
+				os.Exit(1)
+			}
+			fmt.Printf("Успешно загружено %d задач из CSV файла!\n", len(loadedTasks))
+
+		case ".json":
+			// Загружаем задачи из JSON (убедитесь, что функция LoadJSON существует в вашем пакете storage)
+			loadedTasks, err = storage.LoadJSON(*filePathPtr) 
+			if err != nil {
+				fmt.Printf("Ошибка импорта из JSON: %v\n", err)
+				os.Exit(1)
+			}
+			fmt.Printf("Успешно загружено %d задач из JSON файла!\n", len(loadedTasks))
+
+		default:
+			fmt.Printf("Ошибка: Неподдерживаемый формат файла '%s'. Поддерживаются только .csv и .json\n", ext)
+			os.Exit(1)
+		}
+
+		// Перезаписываем текущую базу данных новыми задачами из переданного файла
 		tasks = loadedTasks
 		shouldSave = true
-		fmt.Printf("Успешно загружено %d задач из CSV файла!\n", len(tasks))
 
 	default:
 		fmt.Printf("Неизвестная команда: %s\nЗапустите приложение без аргументов для вывода справки.\n", command)
 		os.Exit(1)
 	}
 
-	// 2. Если в ходе выполнения команды данные изменились — перезаписываем основную БД (JSON)
+	// Загрузка данных в бд
 	if shouldSave {
 		err := storage.SaveJSON(pathToData, tasks)
 		if err != nil {
