@@ -12,6 +12,8 @@ This repository contains a collection of practical programming tasks and solutio
 * **Task5/** — first work with if-else and switch.
 * **Task6/** — first work with errors and files.
 * **Task7/** — first normal work with structs and interfaces.
+* **Task8/** — work helds in separate proj. [IN PROCESS]
+* **Task9/** — first massive project. Todo-app. Have its own json db, where u can add, delete, complete, list all with some filters, load, save data.
 
 ## 🛠️ Tech Stack
 * **Language:** Go (Golang)

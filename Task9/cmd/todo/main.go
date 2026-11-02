@@ -34,7 +34,7 @@ func main() {
  list     - Показать список задач (--filter "all|done|undone")
  complete - Отметить задачу как выполненную (--id int)
  delete   - Удалить задачу (--id int)
- export   - Выгрузить базу данных в CSV файл (--path "tasksToExport.csv|.json")
+ export   - Выгрузить базу данных в CSV файл (--format "csv|json", --out "folder")
  load     - Загрузить базу данных из CSV файла (--path "tasksImportFrom.csv|.json")`)
 		os.Exit(1)
 	}
@@ -139,33 +139,48 @@ func main() {
 
 	case "export":
 		exportCmd := flag.NewFlagSet("export", flag.ExitOnError)
-		filePathPtr := exportCmd.String("path", "", "Путь для выгрузки CSV или JSON файла")
+		formatPtr := exportCmd.String("format", "csv", "Формат выгрузки (csv|json)")
+		outFolderPtr := exportCmd.String("out", "", "Папка для выгрузки файла")
 
 		exportCmd.Parse(os.Args[2:])
-		if len(*filePathPtr) == 0{
-			fmt.Println("Использование: todo-app.exe export --path=<путь_экспорта_с_расширением_файла>")
+
+		if len(*outFolderPtr) == 0 {
+			fmt.Println("Использование: todo-app.exe export --format=\"csv|json\" --out=\"folder\"")
 			os.Exit(1)
 		}
 
-		ext := strings.ToLower(filepath.Ext(*filePathPtr))
+		format := strings.ToLower(*formatPtr)
+		if format != "csv" && format != "json" {
+			fmt.Printf("Ошибка: неподдерживаемый формат '%s'. Используйте 'csv' или 'json'\n", format)
+			os.Exit(1)
+		}
 
-		switch ext {
-		case ".json":
-			err := storage.SaveJSON(*filePathPtr, tasks)
+		if err := os.MkdirAll(*outFolderPtr, os.ModePerm); err != nil {
+			fmt.Printf("Ошибка при создании папки '%s': %v\n", *outFolderPtr, err)
+			os.Exit(1)
+		}
+
+		// Тут пока фиксированное имя "tasksExported", так как формат задается расширением, а логику вписывания имени в путь нужно будет ещё прописать
+		fileName := fmt.Sprintf("tasksExported.%s", format)
+		fullPath := filepath.Join(*outFolderPtr, fileName)
+
+		// Вызываем нужный метод сохранения в зависимости от формата
+		switch format {
+		case "json":
+			err := storage.SaveJSON(fullPath, tasks)
 			if err != nil {
 				fmt.Printf("Ошибка экспорта в JSON: %v\n", err)
 				os.Exit(1)
 			}
-			fmt.Printf("Данные успешно экспортированы в файл: %s\n", *filePathPtr)
-			
-		case ".csv":
-			err := storage.SaveCSV(*filePathPtr, tasks)
+		case "csv":
+			err := storage.SaveCSV(fullPath, tasks)
 			if err != nil {
 				fmt.Printf("Ошибка экспорта в CSV: %v\n", err)
 				os.Exit(1)
 			}
-			fmt.Printf("Данные успешно экспортированы в файл: %s\n", *filePathPtr)
 		}
+
+		fmt.Printf("Данные успешно экспортированы в файл: %s\n", fullPath)
 
 	case "load":
 		loadCmd := flag.NewFlagSet("load", flag.ExitOnError)
