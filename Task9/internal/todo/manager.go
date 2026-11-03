@@ -5,7 +5,7 @@ import "fmt"
 // Add - функция, добавляющая объект task в tasks. Возвращает изменённый tasks соотв-но.
 func Add(tasks []Task, desc string) ([]Task, error) {
 	newTask := Task{
-		ID: randomIdGenerator(len(tasks)),
+		ID: IdGenerator(tasks),
 		Description: desc,
 		IsDone: false,
 	}
@@ -17,7 +17,7 @@ func Add(tasks []Task, desc string) ([]Task, error) {
 // List - функция, выводящая все данные из базы (все задачи). Возвращает тот же tasks.
 func List(tasks []Task, filter string) ([]Task, error) {
 	if (len(tasks)) == 0 {
-		return tasks, fmt.Errorf("Внимание: переданный массив не имеет данных")
+		return tasks, nil
 	}
 
 	if filter == "" || filter == "all"{
@@ -54,7 +54,12 @@ func Complete(tasks []Task, id int) ([]Task, error) {
 		return tasks, fmt.Errorf("Ошибка: задача с ID %v не найдена", id)
 	}
 
-	tasks[foundId].IsDone = !tasks[foundId].IsDone
+	if tasks[foundId].IsDone == true {
+		fmt.Printf("Внимание: задача с ID-%v уже была выполнена\n", id)
+		return tasks, nil
+	}
+
+	tasks[foundId].IsDone = true
 	return tasks, nil
 }
 

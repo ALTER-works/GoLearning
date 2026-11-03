@@ -13,7 +13,7 @@ import (
 const pathToData = "data/tasks.json"
 
 func main() {
-	// 1. Загрузка базы данных из JSON файла при старте
+	// Загрузка базы данных из JSON файла при старте
 	tasks, err := storage.LoadJSON(pathToData)
 	if err != nil {
 		// Если файла ещё нет, инициализируем пустой слайс, иначе выходим с ошибкой
@@ -31,19 +31,16 @@ func main() {
  -- ToDo-app --
  Возможные команды:
  add      - Добавить новую задачу (--desc "описание")
- list     - Показать список задач (--filter "all|done|undone")
+ list     - Показать список задач (--filter "all|done|pending")
  complete - Отметить задачу как выполненную (--id int)
  delete   - Удалить задачу (--id int)
  export   - Выгрузить базу данных в CSV файл (--format "csv|json", --out "folder")
- load     - Загрузить базу данных из CSV файла (--path "tasksImportFrom.csv|.json")`)
+ load     - Загрузить базу данных из CSV файла (--file "tasksImportFrom.csv|.json")`)
 		os.Exit(1)
 	}
 
 	// Обработка команды, в зависимости от названия и фильтров
 	command := os.Args[1]
-
-	// Флаг для отслеживания изменений: сохраняем БД только если данные поменялись
-	shouldSave := false
 
 	switch command {
 	case "add":
@@ -63,12 +60,19 @@ func main() {
 			fmt.Printf("Ошибка: %v", err)
 			os.Exit(1)
 		}
-		shouldSave = true
+
+		// Загрузка данных в БД (если данные поменялись)
+		errDB := storage.SaveJSON(pathToData, tasks)
+		if errDB != nil {
+			fmt.Printf("Критическая ошибка сохранения базы данных: %v\n", errDB)
+			os.Exit(1)
+		}
+
 		fmt.Println("Задача успешно добавлена!")
 
 	case "list":
 		listCmd := flag.NewFlagSet("list", flag.ExitOnError)
-		filterPtr := listCmd.String("filter", "all", "Фильтр задач (all, done, undone)")
+		filterPtr := listCmd.String("filter", "all", "Фильтр задач (all, done, pending)")
 
 		listCmd.Parse(os.Args[2:])
 
@@ -111,9 +115,17 @@ func main() {
 			os.Exit(1)
 		}
 
+		// Перезаписываем БД и меняем флаг
 		tasks = updatedTasks
-		shouldSave = true
-		fmt.Printf("Задача №%d успешно выполнена!\n", *idPtr)
+
+		// Загрузка данных в БД (если данные поменялись)
+		errDB := storage.SaveJSON(pathToData, tasks)
+		if errDB != nil {
+			fmt.Printf("Критическая ошибка сохранения базы данных: %v\n", errDB)
+			os.Exit(1)
+		}
+		
+		fmt.Printf("Задача с ID-%d успешно выполнена!\n", *idPtr)
 
 	case "delete":
 		deleteCmd := flag.NewFlagSet("delete", flag.ExitOnError)
@@ -133,8 +145,16 @@ func main() {
 			os.Exit(1)
 		}
 
+		// Перезаписываем БД и меняем флаг
 		tasks = updatedTasks
-		shouldSave = true
+
+		// Загрузка данных в БД (если данные поменялись)
+		errDB := storage.SaveJSON(pathToData, tasks)
+		if errDB != nil {
+			fmt.Printf("Критическая ошибка сохранения базы данных: %v\n", errDB)
+			os.Exit(1)
+		}
+		
 		fmt.Printf("Задача №%d успешно удалена.\n", *idPtr)
 
 	case "export":
@@ -155,14 +175,35 @@ func main() {
 			os.Exit(1)
 		}
 
-		if err := os.MkdirAll(*outFolderPtr, os.ModePerm); err != nil {
-			fmt.Printf("Ошибка при создании папки '%s': %v\n", *outFolderPtr, err)
-			os.Exit(1)
+		var fullPath string
+		var dir string
+
+		// Проверяем, указал ли пользователь расширение файла в конце пути
+		ext := strings.ToLower(filepath.Ext(*outFolderPtr))
+		
+		if ext != "" {
+            // Если расширение есть, оно ОБЯЗАНО быть либо .json, либо .csv
+            if ext == ".json" || ext == ".csv" {
+                fullPath = *outFolderPtr
+                dir = filepath.Dir(fullPath)
+                format = ext[1:] // автоматически переключаем формат под расширение (json или csv)
+            } else {
+                // Если пользователь пытается подсунуть .cpp, .txt или любой другой неподдерживаемый формат, возвращаем ошибку
+                fmt.Printf("Ошибка: неподдерживаемое расширение файла '%s'. Используйте только .json или .csv\n", ext)
+                os.Exit(1)
+            }
+        } else {
+			// Если передана просто папка, добавляем дефолтное имя (tasksExported.<format>)
+			dir = *outFolderPtr
+			fileName := fmt.Sprintf("tasksExported.%s", format)
+			fullPath = filepath.Join(dir, fileName)
 		}
 
-		// Тут пока фиксированное имя "tasksExported", так как формат задается расширением, а логику вписывания имени в путь нужно будет ещё прописать
-		fileName := fmt.Sprintf("tasksExported.%s", format)
-		fullPath := filepath.Join(*outFolderPtr, fileName)
+		// Создаем папку по указанному в вызове пути, если таковой ещё нет
+		if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+			fmt.Printf("Ошибка при создании папки '%s': %v\n", dir, err)
+			os.Exit(1)
+		}
 
 		// Вызываем нужный метод сохранения в зависимости от формата
 		switch format {
@@ -179,17 +220,17 @@ func main() {
 				os.Exit(1)
 			}
 		}
-
+		
 		fmt.Printf("Данные успешно экспортированы в файл: %s\n", fullPath)
 
 	case "load":
 		loadCmd := flag.NewFlagSet("load", flag.ExitOnError)
-		filePathPtr := loadCmd.String("path", "", "Путь к импортируемому CSV или JSON файлу")
+		filePathPtr := loadCmd.String("file", "", "Путь к импортируемому CSV или JSON файлу")
 
 		loadCmd.Parse(os.Args[2:])
 
 		if len(*filePathPtr) == 0{
-			fmt.Println("Использование: todo-app.exe load --path=<путь_импорта_с_расширением_файла>")
+			fmt.Println("Использование: todo-app.exe load --file=<путь_импорта_с_расширением_файла>")
 			os.Exit(1)
 		}
 
@@ -207,7 +248,7 @@ func main() {
 			fmt.Printf("Успешно загружено %d задач из CSV файла!\n", len(loadedTasks))
 
 		case ".json":
-			// Загружаем задачи из JSON (убедитесь, что функция LoadJSON существует в вашем пакете storage)
+			// Загружаем задачи из JSON
 			loadedTasks, err = storage.LoadJSON(*filePathPtr) 
 			if err != nil {
 				fmt.Printf("Ошибка импорта из JSON: %v\n", err)
@@ -220,21 +261,18 @@ func main() {
 			os.Exit(1)
 		}
 
-		// Перезаписываем текущую базу данных новыми задачами из переданного файла
+		// Перезаписываем БД и меняем флаг
 		tasks = loadedTasks
-		shouldSave = true
+
+		// Загрузка данных в БД (если данные поменялись)
+		errDB := storage.SaveJSON(pathToData, tasks)
+		if errDB != nil {
+			fmt.Printf("Критическая ошибка сохранения базы данных: %v\n", errDB)
+			os.Exit(1)
+		}
 
 	default:
 		fmt.Printf("Неизвестная команда: %s\nЗапустите приложение без аргументов для вывода справки.\n", command)
 		os.Exit(1)
-	}
-
-	// Загрузка данных в бд
-	if shouldSave {
-		err := storage.SaveJSON(pathToData, tasks)
-		if err != nil {
-			fmt.Printf("Критическая ошибка сохранения базы данных: %v\n", err)
-			os.Exit(1)
-		}
 	}
 }

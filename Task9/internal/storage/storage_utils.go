@@ -10,7 +10,7 @@ import (
 func DataLoad(pathToTest string) ([]byte, error){
 	dataBytes, err := os.ReadFile(pathToTest)
 	if err != nil {
-		return nil, fmt.Errorf("Ошибка: %v", err)
+		return nil, fmt.Errorf("Ошибка: %w", err)
 	}
 	
 	return dataBytes, nil

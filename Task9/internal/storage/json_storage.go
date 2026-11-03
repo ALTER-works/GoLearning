@@ -1,9 +1,10 @@
 package storage
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
-	"encoding/json"
+	"path/filepath"
 	todo "todo-app/internal/todo"
 )
 
@@ -29,6 +30,11 @@ func LoadJSON(path string) ([]todo.Task, error) {
 }
 
 func SaveJSON(path string, tasks []todo.Task) error {
+    dir := filepath.Dir(path)
+    if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+        return fmt.Errorf("не удалось создать директорию %s: %w", dir, err)
+    }
+
 	dataBytes, err := json.Marshal(tasks)
 	if err != nil {
 		return fmt.Errorf("не удалось маршалить данные в JSON: %w", err)
