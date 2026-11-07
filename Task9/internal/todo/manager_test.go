@@ -273,26 +273,31 @@ func TestComplete(t *testing.T) {
 	// по чьему айди мы будем проводить изменения с помощью функции Complete в тесте
 	lastIndex := len(tasks) - 1
 	lastTask := tasks[lastIndex]
-	
 	id := lastTask.ID
-	initialIsDone := lastTask.IsDone
 
-	t.Logf("Последний элемент: ID=%d, Статус IsDone=%t", id, initialIsDone)
-
-	// Запуск функции
-	newTasks, err := Complete(tasks, id)
+	// Первый запуск Complete
+	t.Logf("Тестируем элемент: ID=%d, Исходный статус IsDone=%t", id, lastTask.IsDone)
+	firstRunTasks, err := Complete(tasks, id)
 	if err != nil {
-		t.Fatalf("Ошибка: %v", err)
+		t.Fatalf("Ошибка при первом вызове Complete: %v", err)
 	}
 
-	// Сохраняем в новую переменную новое значение для будущего сравнения
-	newIsDone := newTasks[lastIndex].IsDone
-	t.Logf("Статус после Complete: IsDone=%t", newIsDone)
-
-	// Сравниваем результаты - если после complete ничего не поменялось по айди, выдаём ошибку
-	if initialIsDone == newIsDone {
-		t.Fatalf("Ошибка: после вызова Complete статус IsDone для ID %v не изменился!", id)
-	}else {
-		t.Logf("Тест пройден: значение IsDone у Task (%v) из DB (%v) успешно изменено с %v на %v", lastTask, copyTestDbPath, initialIsDone, newIsDone)
+	// Проверка изменения статуса на true
+	if !firstRunTasks[lastIndex].IsDone {
+		t.Fatalf("Ошибка: после первого вызова Complete статус IsDone для ID %d остался false!", id)
 	}
+
+	// Проверка на идемпотентность (Второй запуск Complete)
+	t.Log("Проверка идемпотентности: вызываем Complete повторно для того же ID")
+	secondRunTasks, err := Complete(firstRunTasks, id)
+	if err != nil {
+		t.Fatalf("Ошибка при повторном вызове Complete: %v", err)
+	}
+
+	// Проверяем, что повторный вызов ничего не испортил и статус остался true
+	if !secondRunTasks[lastIndex].IsDone {
+		t.Fatalf("Ошибка идемпотентности: после повторного вызова Complete статус сбросился в false!")
+	}
+
+	t.Logf("Тест пройден: функция успешно устанавливает IsDone=true и сохраняет его при повторных вызовах")
 }
