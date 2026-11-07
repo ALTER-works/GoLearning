@@ -1,1 +1,1 @@
-[{"ID":1,"Description":"Купить молоко","IsDone":false},{"ID":2,"Description":"Написать тесты на Go","IsDone":true},{"ID":3,"Description":"Исправить опечатку в папке internal","IsDone":false},{"ID":4,"Description":"Это тесты CSV","IsDone":true},{"ID":5,"Description":"Тест на выдачу нового ID программой","IsDone":true}]
+[{"ID":1,"Description":"Тест ввода","IsDone":true}]

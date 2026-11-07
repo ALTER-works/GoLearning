@@ -1,12 +1,13 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
-	"todo-app/internal/storage" // Путь к вашему пакету storage, проверьте корректность импорта
+	storage "todo-app/internal/storage"
 	todo "todo-app/internal/todo"
 )
 
@@ -17,8 +18,9 @@ func main() {
 	tasks, err := storage.LoadJSON(pathToData)
 	if err != nil {
 		// Если файла ещё нет, инициализируем пустой слайс, иначе выходим с ошибкой
-		if os.IsNotExist(err) {
+		if errors.Is(err, os.ErrNotExist) {
 			tasks = []todo.Task{}
+			storage.SaveJSON(pathToData, tasks)
 		} else {
 			fmt.Printf("Ошибка загрузки базы данных: %v\n", err)
 			os.Exit(1)

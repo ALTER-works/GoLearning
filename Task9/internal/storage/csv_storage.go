@@ -13,6 +13,10 @@ func LoadCSV(path string) ([]todo.Task, error) {
 		return nil, err
 	}
 	
+	if len(dataBytes) == 0 {
+		return []todo.Task{}, nil
+	}
+
 	var tasks []todo.Task
 	err = add.CsvUnmarshal(dataBytes, &tasks)
 	if err != nil {
@@ -23,6 +27,11 @@ func LoadCSV(path string) ([]todo.Task, error) {
 }
 
 func SaveCSV(path string, tasks []todo.Task) error {
+	err := dirCreation(path)
+	if err != nil {
+		return err
+	}
+
 	dataBytes, err := add.CsvMarshal(tasks)
 	if err != nil {
 		return fmt.Errorf("не удалось маршалить данные в CSV: %w", err)

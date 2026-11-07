@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"os"
 	"net/http"
+	"path/filepath"
 )
 
-// dataLoad загружает данные из файлов для проекта через Unmarhsal из csv и json. 
-func DataLoad(pathToTest string) ([]byte, error){
-	dataBytes, err := os.ReadFile(pathToTest)
+// dataLoad загружает данные из файлов для проекта через Unmarhsal из csv и json. Также отвечает за подгрузку данных из БД.
+func DataLoad(pathToFile string) ([]byte, error){
+	dataBytes, err := os.ReadFile(pathToFile)
 	if err != nil {
 		return nil, fmt.Errorf("Ошибка: %w", err)
 	}
@@ -31,4 +32,14 @@ func findType(dataBytes []byte) (FileType, error)  {
 	mimeType := http.DetectContentType(dataBytes[:limit])
 	
 	return FileType(mimeType), nil
+}
+
+// dirCreation создает папку по указанному пути
+func dirCreation(path string) error {
+    dir := filepath.Dir(path)
+    if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+        return fmt.Errorf("не удалось создать директорию %s: %w", dir, err)
+    }
+
+	return nil
 }

@@ -1,7 +1,7 @@
 package todo
 
 func IdGenerator(tasks []Task) int {
-	max_id := 0
+	max_id := 1
 	for _, task := range tasks{
 		if task.ID >= max_id {
 			max_id = task.ID + 1
